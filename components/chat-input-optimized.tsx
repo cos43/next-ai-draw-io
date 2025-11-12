@@ -10,12 +10,12 @@ import {
     RotateCcw,
     Image as ImageIcon,
     History,
-    MoreHorizontal,
 } from "lucide-react";
 import { ButtonWithTooltip } from "@/components/button-with-tooltip";
 import { FilePreviewList } from "./file-preview-list";
 import { useDiagram } from "@/contexts/diagram-context";
 import { HistoryDialog } from "@/components/history-dialog";
+import { ModelSelector } from "@/components/model-selector";
 import { cn } from "@/lib/utils";
 
 interface ChatInputOptimizedProps {
@@ -29,6 +29,8 @@ interface ChatInputOptimizedProps {
     showHistory?: boolean;
     onToggleHistory?: (show: boolean) => void;
     isCompactMode?: boolean;
+    selectedModelId?: string;
+    onModelChange?: (modelId: string) => void;
 }
 
 export function ChatInputOptimized({
@@ -42,20 +44,27 @@ export function ChatInputOptimized({
     showHistory = false,
     onToggleHistory = () => {},
     isCompactMode = false,
+    selectedModelId = "app-dbcwt0-1750310518239209222",
+    onModelChange = () => {},
 }: ChatInputOptimizedProps) {
     const { diagramHistory } = useDiagram();
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [showClearDialog, setShowClearDialog] = useState(false);
-    const [showToolMenu, setShowToolMenu] = useState(false);
+
+    const MAX_VISIBLE_LINES = 6;
 
     // Auto-resize textarea based on content
     const adjustTextareaHeight = useCallback(() => {
         const textarea = textareaRef.current;
         if (textarea) {
+            const lineHeight =
+                parseFloat(window.getComputedStyle(textarea).lineHeight || "24") ||
+                24;
+            const maxHeight = lineHeight * MAX_VISIBLE_LINES;
             textarea.style.height = "auto";
-            textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
+            textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`;
         }
     }, []);
 
@@ -122,6 +131,14 @@ export function ChatInputOptimized({
         }
     };
 
+    const handleRemoveAllFiles = () => {
+        if (files.length === 0) return;
+        onFileChange([]);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
+    };
+
     // Trigger file input click
     const triggerFileInput = () => {
         fileInputRef.current?.click();
@@ -168,155 +185,122 @@ export function ChatInputOptimized({
     return (
         <form
             onSubmit={onSubmit}
-            className={`w-full space-y-2 ${
-                isDragging
-                    ? "border-2 border-dashed border-primary p-4 rounded-lg bg-muted/20"
-                    : ""
-            }`}
+            className="w-full"
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
         >
-            <FilePreviewList files={files} onRemoveFile={handleRemoveFile} />
-
-            <Textarea
-                ref={textareaRef}
-                value={input}
-                onChange={onChange}
-                onKeyDown={handleKeyDown}
-                onPaste={handlePaste}
-                placeholder={`描述你想对图表做的修改，或上传/粘贴图片来复刻示例。
-（按下 Cmd/Ctrl + Enter 快速发送）`}
-                disabled={status === "streaming"}
-                aria-label="聊天输入框"
-                className="min-h-[80px] resize-none transition-all duration-200 px-1 py-0"
-            />
-
-            <div className="flex items-center justify-between">
-                {/* 左侧：清空按钮和工具菜单 */}
-                <div className="flex items-center gap-1">
-                    {isCompactMode ? (
-                        // 紧凑模式：使用更多按钮
-                        <div className="relative">
-                            <ButtonWithTooltip
+            <div
+                className={cn(
+                    "relative overflow-hidden rounded-2xl border border-slate-200 bg-white/90 shadow-md transition-all",
+                    isDragging && "ring-2 ring-slate-300"
+                )}
+            >
+                {files.length > 0 && (
+                    <div className="flex flex-col gap-1 border-b border-slate-200/80 px-3 py-2">
+                        <div className="flex items-center justify-between text-[11px] font-medium text-slate-500">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-900 px-2 py-0.5 text-[10px] uppercase tracking-wide text-white">
+                                {files.length} 个附件
+                            </span>
+                            <button
                                 type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setShowToolMenu(!showToolMenu)}
-                                tooltipContent="显示更多工具"
+                                onClick={handleRemoveAllFiles}
+                                className="rounded-full px-2 py-0.5 text-[11px] text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
                             >
-                                <MoreHorizontal className="h-4 w-4" />
-                            </ButtonWithTooltip>
-                            {showToolMenu && (
-                                <div className="absolute bottom-full left-0 mb-2 rounded-lg border bg-white shadow-lg p-1 z-10">
-                                    <div className="flex flex-col gap-1">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setShowClearDialog(true);
-                                                setShowToolMenu(false);
-                                            }}
-                                            className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-gray-100"
-                                            disabled={status === "streaming"}
-                                        >
-                                            <RotateCcw className="h-4 w-4" />
-                                            清空对话
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                onToggleHistory(true);
-                                                setShowToolMenu(false);
-                                            }}
-                                            disabled={
-                                                status === "streaming" ||
-                                                diagramHistory.length === 0
-                                            }
-                                            className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-gray-100 disabled:opacity-50"
-                                        >
-                                            <History className="h-4 w-4" />
-                                            图表历史
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                triggerFileInput();
-                                                setShowToolMenu(false);
-                                            }}
-                                            disabled={status === "streaming"}
-                                            className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-gray-100 disabled:opacity-50"
-                                        >
-                                            <ImageIcon className="h-4 w-4" />
-                                            上传图片
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
+                                移除全部
+                            </button>
                         </div>
-                    ) : (
-                        // 正常模式：显示所有按钮
-                        <>
-                            <ButtonWithTooltip
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setShowClearDialog(true)}
-                                tooltipContent="清空当前对话与图表"
-                                disabled={status === "streaming"}
-                            >
-                                <RotateCcw className="h-4 w-4" />
-                            </ButtonWithTooltip>
+                        <FilePreviewList
+                            files={files}
+                            onRemoveFile={handleRemoveFile}
+                            variant="chip"
+                        />
+                    </div>
+                )}
 
-                            <ButtonWithTooltip
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => onToggleHistory(true)}
-                                disabled={
-                                    status === "streaming" ||
-                                    diagramHistory.length === 0
-                                }
-                                tooltipContent="查看图表变更记录"
-                            >
-                                <History className="h-4 w-4" />
-                            </ButtonWithTooltip>
-
-                            <ButtonWithTooltip
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={triggerFileInput}
-                                disabled={status === "streaming"}
-                                tooltipContent="上传图片"
-                            >
-                                <ImageIcon className="h-4 w-4" />
-                            </ButtonWithTooltip>
-                        </>
-                    )}
+                <div className="px-3 py-2">
+                    <Textarea
+                        ref={textareaRef}
+                        value={input}
+                        onChange={onChange}
+                        onKeyDown={handleKeyDown}
+                        onPaste={handlePaste}
+                        placeholder="描述你想让流程图如何调整，支持拖拽或粘贴图片作为参考素材"
+                        disabled={status === "streaming"}
+                        aria-label="聊天输入框"
+                        className="h-auto min-h-[56px] resize-none border-0 !border-none bg-transparent p-0 text-sm leading-6 text-slate-900 outline-none focus-visible:border-0 focus-visible:ring-0 focus-visible:outline-none focus-visible:!border-none focus-visible:!outline-none"
+                    />
                 </div>
 
-                {/* 右侧：发送按钮 */}
-                <Button
-                    type="submit"
-                    disabled={status === "streaming" || !input.trim()}
-                    className="transition-opacity"
-                    size="sm"
-                    aria-label={
-                        status === "streaming"
-                            ? "正在发送消息…"
-                            : "发送消息"
-                    }
-                >
-                    {status === "streaming" ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                        <Send className="mr-2 h-4 w-4" />
-                    )}
-                    发送
-                </Button>
+                <div className="flex flex-wrap items-center justify-between gap-2 px-3 pt-1 pb-1.5">
+                    <div className="flex items-center gap-1.5">
+                        <ButtonWithTooltip
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 rounded-full"
+                            onClick={() => setShowClearDialog(true)}
+                            tooltipContent="清空当前对话与图表"
+                            disabled={status === "streaming"}
+                        >
+                            <RotateCcw className="h-4 w-4" />
+                        </ButtonWithTooltip>
+
+                        <ButtonWithTooltip
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 rounded-full"
+                            onClick={() => onToggleHistory(true)}
+                            disabled={
+                                status === "streaming" || diagramHistory.length === 0
+                            }
+                            tooltipContent="查看图表变更记录"
+                        >
+                            <History className="h-4 w-4" />
+                        </ButtonWithTooltip>
+
+                        <ButtonWithTooltip
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 rounded-full"
+                            onClick={triggerFileInput}
+                            disabled={status === "streaming"}
+                            tooltipContent="上传图片"
+                        >
+                            <ImageIcon className="h-4 w-4" />
+                        </ButtonWithTooltip>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <ModelSelector
+                            selectedModelId={selectedModelId}
+                            onModelChange={onModelChange}
+                            disabled={status === "streaming"}
+                        />
+                        <Button
+                            type="submit"
+                            disabled={status === "streaming" || !input.trim()}
+                            className="h-8 min-w-[88px] gap-2 rounded-full bg-slate-900 text-white shadow-sm transition hover:bg-slate-900/90 disabled:opacity-60"
+                            size="sm"
+                            aria-label={
+                                status === "streaming"
+                                    ? "正在发送消息…"
+                                    : "发送消息"
+                            }
+                        >
+                            {status === "streaming" ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <Send className="h-4 w-4" />
+                            )}
+                            发送
+                        </Button>
+                    </div>
+                </div>
             </div>
 
-            {/* 隐藏的文件输入 */}
             <input
                 type="file"
                 ref={fileInputRef}
@@ -327,14 +311,12 @@ export function ChatInputOptimized({
                 disabled={status === "streaming"}
             />
 
-            {/* 警告对话框 */}
             <ResetWarningModal
                 open={showClearDialog}
                 onOpenChange={setShowClearDialog}
                 onClear={handleClear}
             />
 
-            {/* 历史对话框 */}
             <HistoryDialog
                 showHistory={showHistory}
                 onToggleHistory={onToggleHistory}

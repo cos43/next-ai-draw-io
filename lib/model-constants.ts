@@ -11,25 +11,12 @@ export interface ModelPreset {
 
 export const MODEL_PRESETS: ModelPreset[] = [
     {
-        id: "wanqing-flowpilot",
-        label: "FlowPilot · 晚晴",
-        description: "默认模型，稳定支持 FlowPilot 的图表重排与策略输出。",
+        id: "app-dbcwt0-1750310518239209222",
+        label: "FlowPilot · 默认模型",
+        description: "默认模型，支持 FlowPilot 的图表重排与策略输出。",
         provider: "wanqing",
         default: true,
         recommended: true,
-    },
-    {
-        id: "wanqing-flowpilot-v2",
-        label: "FlowPilot v2 · 晚晴",
-        description: "增强版模型，更好的布局优化和复杂图表支持。",
-        provider: "wanqing",
-        recommended: true,
-    },
-    {
-        id: "wanqing-flowpilot-fast",
-        label: "FlowPilot Fast · 晚晴",
-        description: "快速生成模式，适合简单流程图和快速原型。",
-        provider: "wanqing",
     },
 ];
 

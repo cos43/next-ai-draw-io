@@ -41,11 +41,11 @@ export default function ExamplePanel({
         }
     };
     return (
-        <div className="border-y border-gray-100 px-4 py-4">
+        <div className="border-y border-gray-100 px-4 py-3">
             <p className="mb-1 text-sm text-gray-600">
                 FlowPilot 既可以空白起稿，也能参考上传的示例；试试下面的模板更快进入状态。
             </p>
-            <p className="mb-3 text-sm text-gray-500">
+            <p className="mb-3 text-xs text-gray-500">
                 点击任意选项即可自动填充输入框，必要时会附带示例附件。
             </p>
             <div className="flex flex-wrap gap-2">

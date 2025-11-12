@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "FlowPilot 智能画布",
+    title: "FlowPilot 智能流程图",
     description: "将 draw.io 与对话式 AI 助手结合的智能制图工作台。",
 };
 

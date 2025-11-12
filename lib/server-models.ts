@@ -1,5 +1,5 @@
 import { createOpenAI } from "@ai-sdk/openai";
-import type { LanguageModel } from "ai";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 
 import {
     DEFAULT_MODEL_ID,
@@ -29,6 +29,10 @@ const wanqingClient = createOpenAI({
     baseURL: WANQING_BASE_URL,
 });
 
+const googleClient = createGoogleGenerativeAI({
+    apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+});
+
 export interface ResolvedModel {
     id: string;
     label: string;
@@ -42,16 +46,8 @@ const presetFactories: Record<
     string,
     () => { model: any; slug: string }
 > = {
-    "wanqing-flowpilot": () => ({
+    "app-dbcwt0-1750310518239209222": () => ({
         model: wanqingClient.chat(WANQING_MODEL_ID),
-        slug: WANQING_MODEL_ID,
-    }),
-    "wanqing-flowpilot-v2": () => ({
-        model: wanqingClient.chat(WANQING_MODEL_ID), // 暂时使用相同的模型ID
-        slug: WANQING_MODEL_ID,
-    }),
-    "wanqing-flowpilot-fast": () => ({
-        model: wanqingClient.chat(WANQING_MODEL_ID), // 暂时使用相同的模型ID
         slug: WANQING_MODEL_ID,
     }),
 };
@@ -59,7 +55,7 @@ const presetFactories: Record<
 export function resolveChatModel(requestedId?: string): ResolvedModel {
     const rawId = (requestedId ?? DEFAULT_MODEL_ID).trim();
     const lowerId = rawId.toLowerCase();
-    const normalizedId = presetIdLookup.get(lowerId) ?? lowerId;
+    const normalizedId = presetIdLookup.get(lowerId) ?? rawId; // 使用原始ID而不是小写版本
 
     if (presetFactories[normalizedId]) {
         const meta = presetMap.get(normalizedId) as ModelPreset | undefined;
@@ -74,15 +70,13 @@ export function resolveChatModel(requestedId?: string): ResolvedModel {
         };
     }
 
-    // 如果没有找到预设模型，返回默认模型
-    const defaultMeta = presetMap.get(DEFAULT_MODEL_ID) as ModelPreset | undefined;
-    const { model, slug } = presetFactories[DEFAULT_MODEL_ID]();
+    // 如果没有找到预设模型，使用自定义模型ID直接调用wanqing API
     return {
-        id: DEFAULT_MODEL_ID,
-        label: defaultMeta?.label ?? DEFAULT_MODEL_ID,
-        description: defaultMeta?.description,
+        id: rawId,
+        label: rawId,
+        description: "自定义模型",
         provider: "wanqing",
-        slug,
-        model,
+        slug: rawId,
+        model: wanqingClient.chat(rawId),
     };
 }

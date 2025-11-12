@@ -3,13 +3,19 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface FilePreviewListProps {
     files: File[];
     onRemoveFile: (fileToRemove: File) => void;
+    variant?: "grid" | "chip";
 }
 
-export function FilePreviewList({ files, onRemoveFile }: FilePreviewListProps) {
+export function FilePreviewList({
+    files,
+    onRemoveFile,
+    variant = "grid",
+}: FilePreviewListProps) {
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [previewMap, setPreviewMap] = useState<Record<string, string>>({});
 
@@ -30,86 +36,137 @@ export function FilePreviewList({ files, onRemoveFile }: FilePreviewListProps) {
         };
     }, [files]);
 
-    const hasFiles = files.length > 0;
+    if (files.length === 0) {
+        return null;
+    }
 
-    return (
-        <div className="rounded-md border border-dashed border-slate-200 bg-slate-50/40 p-3">
-            <div className="mb-2 flex items-center justify-between text-xs text-slate-500">
-                <span>参考图片</span>
-                {!hasFiles && <span>拖拽或点击下方「上传图片」按钮即可添加</span>}
+    const previewModal = selectedImage ? (
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+            onClick={() => setSelectedImage(null)}
+        >
+            <button
+                className="absolute right-4 top-4 z-10 rounded-full bg-white p-2 transition-colors hover:bg-gray-200"
+                onClick={() => setSelectedImage(null)}
+                aria-label="关闭"
+            >
+                <X className="h-6 w-6" />
+            </button>
+            <div className="relative h-auto w-auto max-h-[90vh] max-w-[90vw]">
+                <Image
+                    src={selectedImage}
+                    alt="预览"
+                    width={1200}
+                    height={900}
+                    className="h-auto w-auto max-h-[90vh] max-w-full object-contain"
+                    onClick={(e) => e.stopPropagation()}
+                />
             </div>
-            {hasFiles ? (
-                <div className="flex flex-wrap gap-2">
+        </div>
+    ) : null;
+
+    if (variant === "chip") {
+        return (
+            <>
+                <div className="flex flex-wrap gap-1.5">
                     {files.map((file, index) => {
                         const key = `${file.name}-${file.size}-${file.lastModified}`;
                         const imageUrl =
-                            file.type.startsWith("image/") &&
-                            previewMap[key]
+                            file.type.startsWith("image/") && previewMap[key]
                                 ? previewMap[key]
                                 : null;
+                        const extension = file.name.includes(".")
+                            ? file.name.split(".").pop()
+                            : "";
                         return (
-                            <div key={file.name + index} className="relative group">
-                                <div
-                                    className="w-20 h-20 border rounded-md overflow-hidden bg-muted cursor-pointer"
-                                    onClick={() => imageUrl && setSelectedImage(imageUrl)}
-                                >
-                                    {imageUrl ? (
-                                        <Image
+                            <div
+                                key={file.name + index}
+                                className={cn(
+                                    "group inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white/90 px-2.5 py-1 text-xs text-slate-600 shadow-sm transition",
+                                    "hover:border-slate-300 hover:shadow"
+                                )}
+                            >
+                                {imageUrl ? (
+                                    <button
+                                        type="button"
+                                        className="h-6 w-6 overflow-hidden rounded-full border border-slate-200 transition hover:border-slate-300"
+                                        onClick={() => setSelectedImage(imageUrl)}
+                                        aria-label={`预览 ${file.name}`}
+                                    >
+                                        <img
                                             src={imageUrl}
                                             alt={file.name}
-                                            width={80}
-                                            height={80}
-                                            className="object-cover w-full h-full"
+                                            className="h-full w-full object-cover"
                                         />
-                                    ) : (
-                                        <div className="flex h-full items-center justify-center p-1 text-center text-[11px] text-slate-600">
-                                            {file.name}
-                                        </div>
-                                    )}
-                                </div>
+                                    </button>
+                                ) : (
+                                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-[10px] font-semibold uppercase text-white">
+                                        {extension?.slice(0, 3)}
+                                    </span>
+                                )}
+                                <span className="max-w-[140px] truncate">{file.name}</span>
                                 <button
                                     type="button"
                                     onClick={() => onRemoveFile(file)}
-                                    className="absolute -top-2 -right-2 rounded-full bg-destructive p-1 opacity-0 transition-opacity group-hover:opacity-100"
-                                    aria-label="移除文件"
+                                    className="rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                                    aria-label={`移除 ${file.name}`}
                                 >
-                                    <X className="h-3 w-3 text-white" />
+                                    <X className="h-3 w-3" />
                                 </button>
                             </div>
                         );
                     })}
                 </div>
-            ) : (
-                <div className="rounded-md border border-dashed border-slate-200 bg-white/60 p-3 text-xs text-slate-500">
-                    尚未添加图片，可粘贴截图、拖入示例或点击上传按钮。
-                </div>
-            )}
+                {previewModal}
+            </>
+        );
+    }
 
-            {/* Image Modal/Lightbox */}
-            {selectedImage && (
-                <div
-                    className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
-                    onClick={() => setSelectedImage(null)}
-                >
-                    <button
-                        className="absolute top-4 right-4 z-10 bg-white rounded-full p-2 hover:bg-gray-200 transition-colors"
-                        onClick={() => setSelectedImage(null)}
-                        aria-label="关闭"
-                    >
-                        <X className="h-6 w-6" />
-                    </button>
-                    <div className="relative w-auto h-auto max-w-[90vw] max-h-[90vh]">
-                        <Image
-                            src={selectedImage}
-                            alt="预览"
-                            width={1200}
-                            height={900}
-                            className="object-contain max-w-full max-h-[90vh] w-auto h-auto"
-                            onClick={(e) => e.stopPropagation()}
-                        />
-                    </div>
-                </div>
-            )}
+    return (
+        <div className="rounded-md border border-dashed border-slate-200 bg-slate-50/40 p-3">
+            <div className="mb-2 flex items-center justify-between text-xs text-slate-500">
+                <span>参考图片</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+                {files.map((file, index) => {
+                    const key = `${file.name}-${file.size}-${file.lastModified}`;
+                    const imageUrl =
+                        file.type.startsWith("image/") && previewMap[key]
+                            ? previewMap[key]
+                            : null;
+                    return (
+                        <div key={file.name + index} className="group relative">
+                            <div
+                                className="h-20 w-20 cursor-pointer overflow-hidden rounded-md border bg-muted"
+                                onClick={() => imageUrl && setSelectedImage(imageUrl)}
+                            >
+                                {imageUrl ? (
+                                    <Image
+                                        src={imageUrl}
+                                        alt={file.name}
+                                        width={80}
+                                        height={80}
+                                        className="h-full w-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="flex h-full items-center justify-center p-1 text-center text-[11px] text-slate-600">
+                                        {file.name}
+                                    </div>
+                                )}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => onRemoveFile(file)}
+                                className="absolute -right-2 -top-2 rounded-full bg-destructive p-1 opacity-0 transition-opacity group-hover:opacity-100"
+                                aria-label="移除文件"
+                            >
+                                <X className="h-3 w-3 text-white" />
+                            </button>
+                        </div>
+                    );
+                })}
+            </div>
+            {previewModal}
         </div>
     );
 }

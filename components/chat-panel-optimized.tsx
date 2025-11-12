@@ -10,11 +10,8 @@ import {
     Settings,
     Zap,
     FileText,
-    Sparkles,
     X,
     Download,
-    Eye,
-    Loader2,
 } from "lucide-react";
 
 import {
@@ -46,7 +43,6 @@ import {
 import { ReportBlueprintTray } from "./report-blueprint-tray";
 import { CalibrationConsole } from "./calibration-console";
 import { useChatState } from "@/hooks/use-chat-state";
-import { DiagramTimelineRail } from "./diagram-timeline-rail";
 import { DEFAULT_MODEL_ID, MODEL_PRESETS } from "@/lib/model-constants";
 
 const FLOWPILOT_AI_CALIBRATION_PROMPT = `### FlowPilot 校准舱 · AI 重排指令
@@ -91,21 +87,6 @@ const TOOLBAR_ACTIONS: Record<
         icon: FileText,
         description: "调用灵感与述职模板",
     },
-};
-
-type ComparisonResult = {
-    id: string;
-    label: string;
-    provider: string;
-    status: "ok" | "error";
-    summary?: string;
-    xml?: string;
-    error?: string;
-};
-
-type AttachmentPayload = {
-    url: string;
-    mediaType: string;
 };
 
 interface ChatPanelProps {
@@ -157,10 +138,6 @@ export default function ChatPanelOptimized({
     const [showHistory, setShowHistory] = useState(false);
     const [input, setInput] = useState("");
     const [selectedModelId, setSelectedModelId] = useState<string>(DEFAULT_MODEL_ID);
-    const [isModelStrategyExpanded, setIsModelStrategyExpanded] = useState(false);
-    const [comparisonPrompt, setComparisonPrompt] = useState("");
-    const [comparisonResults, setComparisonResults] = useState<ComparisonResult[]>([]);
-    const [isComparing, setIsComparing] = useState(false);
     const [briefState, setBriefState] = useState<FlowPilotBriefState>({
         intent: "draft",
         tone: "balanced",
@@ -169,19 +146,10 @@ export default function ChatPanelOptimized({
     });
     const [commandTab, setCommandTab] = useState<"starter" | "report">("starter");
     const [activeToolPanel, setActiveToolPanel] = useState<ToolPanel | null>(null);
-    const [lastToolPanel, setLastToolPanel] = useState<ToolPanel>("brief");
 
     const selectedModelMeta = useMemo(
         () => MODEL_PRESETS.find((preset) => preset.id === selectedModelId),
         [selectedModelId]
-    );
-    const providerLabel = selectedModelMeta
-        ? selectedModelMeta.label
-        : `自定义 · ${selectedModelId}`;
-
-    const wanqingModels = useMemo(
-        () => MODEL_PRESETS.filter(preset => preset.provider === "wanqing"),
-        []
     );
 
     const briefContext = useMemo(() => {
@@ -358,103 +326,6 @@ export default function ChatPanelOptimized({
         setFiles(newFiles);
     };
 
-    // 序列化文件用于对比
-    const serializeFilesForComparison = async (): Promise<AttachmentPayload[]> => {
-        const imageFiles = files.filter((file) => file.type.startsWith("image/"));
-        return Promise.all(
-            imageFiles.map(
-                (file) =>
-                    new Promise<AttachmentPayload>((resolve, reject) => {
-                        const reader = new FileReader();
-                        reader.onerror = () => reject(new Error("读取图片失败"));
-                        reader.onload = () =>
-                            resolve({
-                                url: reader.result as string,
-                                mediaType: file.type,
-                            });
-                        reader.readAsDataURL(file);
-                    })
-            )
-        );
-    };
-
-    // 晚晴模型对比处理函数
-    const handleWanqingModelComparison = async () => {
-        if (comparisonPrompt.trim().length === 0) return;
-        
-        setIsComparing(true);
-        setComparisonResults([]);
-        
-        try {
-            let chartXml = chartXML || "";
-            try {
-                const exportedXml = await onFetchChart();
-                if (exportedXml) {
-                    chartXml = formatXML(exportedXml);
-                }
-            } catch (err) {
-                console.warn("导出画布用于对比失败，使用最近一次的 XML。", err);
-            }
-
-            const attachmentsPayload = await serializeFilesForComparison();
-            
-            const response = await fetch("/api/model-compare", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    models: wanqingModels.map((preset) => ({ id: preset.id, label: preset.label })),
-                    prompt: comparisonPrompt.trim(),
-                    xml: chartXml,
-                    brief: briefContext.prompt,
-                    attachments: attachmentsPayload,
-                }),
-            });
-            
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.error ?? "对比失败，请稍后重试。");
-            }
-            setComparisonResults(data.results ?? []);
-        } catch (error) {
-            console.error("模型对比失败:", error);
-        } finally {
-            setIsComparing(false);
-        }
-    };
-
-    // 选择对比结果并继续对话
-    const handleSelectComparisonResult = (result: ComparisonResult) => {
-        if (result.status !== "ok" || !result.xml) return;
-        
-        // 切换到对应的模型
-        setSelectedModelId(result.id);
-        
-        // 应用选中的XML到画布
-        onDisplayChart(result.xml);
-        
-        // 清空对比结果，准备继续对话
-        setComparisonResults([]);
-        setComparisonPrompt("");
-        
-        // 收起模型策略区域
-        setIsModelStrategyExpanded(false);
-    };
-
-    // 预览对比结果
-    const handlePreviewComparisonResult = (result: ComparisonResult) => {
-        if (result.status !== "ok" || !result.xml) return;
-        onDisplayChart(result.xml);
-        window.setTimeout(() => {
-            try {
-                onExport();
-            } catch (err) {
-                console.warn("导出对比结果失败", err);
-            }
-        }, 400);
-    };
-
     const quickActions: QuickActionDefinition[] = [
         {
             id: "aws-refresh",
@@ -561,7 +432,6 @@ export default function ChatPanelOptimized({
         setMessages([]);
         clearDiagram();
         clearConversation();
-        setComparisonResults([]);
     };
 
     const exchanges = messages.filter(
@@ -569,13 +439,7 @@ export default function ChatPanelOptimized({
     ).length;
 
     const toggleToolPanel = (panel: ToolPanel) => {
-        setActiveToolPanel((current) => {
-            const next = current === panel ? null : panel;
-            if (next) {
-                setLastToolPanel(next);
-            }
-            return next;
-        });
+        setActiveToolPanel((current) => current === panel ? null : panel);
     };
 
     const renderToolPanel = () => {
@@ -661,14 +525,13 @@ export default function ChatPanelOptimized({
     const toolbarPanels: ToolPanel[] = ["brief", "calibration", "actions"];
     const ActivePanelIcon = activeToolPanel ? TOOLBAR_ACTIONS[activeToolPanel].icon : null;
     const showSessionStatus = !isCompactMode || !isConversationStarted;
-    const floatingLabel = TOOLBAR_ACTIONS[lastToolPanel].label;
 
     return (
         <Card className="relative flex h-full min-h-0 flex-col gap-0 rounded-none py-0">
             <CardHeader className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-100 px-3 py-2">
                 <div className="flex items-center gap-2">
                     <CardTitle className="text-base font-semibold tracking-tight text-slate-900">
-                        FlowPilot 智能画布
+                        FlowPilot 智能流程图
                     </CardTitle>
                     <span className="text-[11px] uppercase tracking-wide text-slate-400">
                         studio
@@ -765,164 +628,16 @@ export default function ChatPanelOptimized({
                                 收起
                             </button>
                         </div>
-                        <div className="max-h-[45vh] overflow-y-auto pr-1">
+                        <div className="max-h-[35vh] overflow-y-auto pr-1">
                             {renderToolPanel()}
                         </div>
                     </div>
                 )}
 
-                {/* 模型策略区域 */}
-                <div className="rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-sm space-y-3">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                                <Sparkles className="h-4 w-4 text-amber-400" />
-                                模型策略
-                            </div>
-                            <span className="inline-flex items-center rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-semibold text-white shadow">
-                                {providerLabel}
-                            </span>
-                        </div>
-                        <button
-                            type="button"
-                            onClick={() => setIsModelStrategyExpanded(!isModelStrategyExpanded)}
-                            className="text-[11px] font-semibold text-slate-500 transition hover:text-slate-900"
-                        >
-                            {isModelStrategyExpanded ? "收起" : "展开"}
-                        </button>
-                    </div>
-                    
-                    {isModelStrategyExpanded && (
-                        <>
-                            <div className="flex flex-wrap gap-2">
-                                {MODEL_PRESETS.map((preset) => {
-                                    const isActive = preset.id === selectedModelId;
-                                    return (
-                                        <button
-                                            key={preset.id}
-                                            type="button"
-                                            onClick={() => setSelectedModelId(preset.id)}
-                                            className={cn(
-                                                "rounded-full border px-3 py-1 text-sm font-medium transition",
-                                                isActive
-                                                    ? "border-slate-900 bg-slate-900 text-white"
-                                                    : "border-slate-200 bg-white text-slate-700 hover:border-slate-400"
-                                            )}
-                                        >
-                                            {preset.label}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                            
-                            <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-xs font-semibold text-slate-600">
-                                        晚晴模型对比
-                                    </span>
-                                    <span className="text-[10px] text-slate-500">
-                                        同一提示词，多个模型同时生成
-                                    </span>
-                                </div>
-                                
-                                <div className="space-y-2">
-                                    <textarea
-                                        value={comparisonPrompt}
-                                        onChange={(e) => setComparisonPrompt(e.target.value)}
-                                        className="w-full min-h-[72px] rounded-md border border-slate-200 bg-white/90 p-2 text-sm focus:outline-none focus:ring-1 focus:ring-slate-400"
-                                        placeholder="描述希望生成的图表内容，我们将使用晚晴的不同模型同时生成…"
-                                    />
-                                    <div className="flex items-center justify-between">
-                                        <button
-                                            type="button"
-                                            onClick={() => setComparisonPrompt(input)}
-                                            className="text-xs font-semibold text-slate-500 underline-offset-2 transition hover:text-slate-900 hover:underline disabled:opacity-60"
-                                            disabled={input.trim().length === 0}
-                                        >
-                                            使用下方输入内容
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={handleWanqingModelComparison}
-                                            disabled={isComparing || comparisonPrompt.trim().length === 0}
-                                            className="inline-flex items-center gap-2 rounded-md bg-slate-900 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
-                                        >
-                                            {isComparing ? (
-                                                <>
-                                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                                    生成中…
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Sparkles className="h-4 w-4 text-amber-300" />
-                                                    生成候选
-                                                </>
-                                            )}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </>
-                    )}
-                    
-                    {comparisonResults.length > 0 && (
-                        <div className="space-y-2">
-                            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                对比结果
-                            </div>
-                            <div className="space-y-2">
-                                {comparisonResults.map((result, index) =>
-                                    result.status === "ok" ? (
-                                        <div
-                                            key={`${result.id}-${index}`}
-                                            className="rounded-xl border border-slate-200 bg-white/90 p-3 shadow-sm"
-                                        >
-                                            <div className="flex flex-wrap items-center justify-between gap-2">
-                                                <div>
-                                                    <p className="text-sm font-semibold text-slate-900">
-                                                        {result.label}
-                                                    </p>
-                                                    <p className="text-xs text-slate-500">
-                                                        {result.summary || "模型已返回候选布局。"}
-                                                    </p>
-                                                </div>
-                                                <div className="flex gap-2">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleSelectComparisonResult(result)}
-                                                        className="inline-flex items-center gap-1 rounded-md bg-slate-900 px-2 py-1 text-xs font-semibold text-white transition hover:bg-slate-800"
-                                                    >
-                                                        <Eye className="h-3.5 w-3.5" />
-                                                        选择并继续
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handlePreviewComparisonResult(result)}
-                                                        className="inline-flex items-center gap-1 rounded-md border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-700 transition hover:border-slate-500"
-                                                    >
-                                                        预览
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div
-                                            key={`${result.id}-${index}-error`}
-                                            className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700"
-                                        >
-                                            {result.label}：{result.error ?? "生成失败"}
-                                        </div>
-                                    )
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </div>
-
                 {showSessionStatus && (
                     <SessionStatus
                         status={status}
-                        providerLabel={providerLabel}
+                        providerLabel={selectedModelMeta?.label || selectedModelId}
                         diagramVersions={
                             diagramHistory.length > 0
                                 ? diagramHistory.length
@@ -935,13 +650,6 @@ export default function ChatPanelOptimized({
                     />
                 )}
 
-                <DiagramTimelineRail
-                    history={diagramHistory}
-                    activeIndex={activeVersionIndex}
-                    onSelect={restoreDiagramAt}
-                    onShowHistory={() => setShowHistory(true)}
-                />
-
                 <div className="flex-1 min-h-0 overflow-hidden rounded-2xl border border-slate-100 bg-white/90 px-2">
                     <ChatMessageDisplay
                         messages={messages}
@@ -952,7 +660,7 @@ export default function ChatPanelOptimized({
                 </div>
             </CardContent>
 
-            <CardFooter className="shrink-0 border-t bg-background p-3">
+            <CardFooter className="shrink-0 bg-background p-3">
                 <ChatInputOptimized
                     input={input}
                     status={status}
@@ -964,21 +672,11 @@ export default function ChatPanelOptimized({
                     showHistory={showHistory}
                     onToggleHistory={setShowHistory}
                     isCompactMode={isCompactMode && isConversationStarted}
+                    selectedModelId={selectedModelId}
+                    onModelChange={setSelectedModelId}
                 />
             </CardFooter>
 
-            {!activeToolPanel && (
-                <div className="pointer-events-none absolute bottom-28 right-4 z-20">
-                    <button
-                        type="button"
-                        onClick={() => toggleToolPanel(lastToolPanel)}
-                        className="pointer-events-auto inline-flex items-center gap-1 rounded-full bg-slate-900/90 px-3 py-1.5 text-xs font-semibold text-white shadow-lg transition hover:bg-slate-900"
-                    >
-                        <Settings className="h-3.5 w-3.5 text-white" />
-                        打开{floatingLabel}
-                    </button>
-                </div>
-            )}
         </Card>
     );
 }

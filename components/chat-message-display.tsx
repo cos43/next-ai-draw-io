@@ -156,9 +156,9 @@ export function ChatMessageDisplay({
     };
 
     return (
-        <ScrollArea className="h-full pr-4 pb-16">
+        <ScrollArea className="h-full pr-4">
             {messages.length === 0 ? (
-                <div className="pt-2">
+                <div className="py-2">
                     <ExamplePanel setInput={setInput} setFiles={setFiles} />
                 </div>
             ) : (
