@@ -7,7 +7,7 @@ export default function ExamplePanel({
 }) {
     // New handler for the "Replicate this flowchart" button
     const handleReplicateFlowchart = async () => {
-        setInput("Replicate this flowchart.");
+        setInput("请帮我复刻这张流程图。");
 
         try {
             // Fetch the example image
@@ -24,7 +24,7 @@ export default function ExamplePanel({
 
     // Handler for the "Replicate this in aws style" button
     const handleReplicateArchitecture = async () => {
-        setInput("Replicate this in aws style");
+        setInput("请使用 AWS 设计风格复刻这张架构图。");
 
         try {
             // Fetch the architecture image
@@ -41,34 +41,39 @@ export default function ExamplePanel({
         }
     };
     return (
-        <div className="px-4 py-2 border-t border-b border-gray-100">
-            <p className="text-sm text-gray-500 mb-2">
-                {" "}
-                Start a conversation to generate or modify diagrams.
+        <div className="border-y border-gray-100 px-4 py-4">
+            <p className="mb-1 text-sm text-gray-600">
+                FlowPilot 既可以空白起稿，也能参考上传的示例；试试下面的模板更快进入状态。
             </p>
-            <p className="text-sm text-gray-500 mb-2">
-                {" "}
-                You can also upload images to use as references.
+            <p className="mb-3 text-sm text-gray-500">
+                点击任意选项即可自动填充输入框，必要时会附带示例附件。
             </p>
-            <p className="text-sm text-gray-500 mb-2">Try these examples:</p>
-            <div className="flex flex-wrap gap-5">
+            <div className="flex flex-wrap gap-2">
                 <button
-                    className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-1 px-2 rounded"
+                    className="rounded-full bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-800 transition hover:bg-gray-200 whitespace-nowrap"
                     onClick={handleReplicateArchitecture}
                 >
-                    Create this diagram in aws style
+                    复刻这份 AWS 架构
                 </button>
                 <button
-                    className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-1 px-2 rounded"
+                    className="rounded-full bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-800 transition hover:bg-gray-200 whitespace-nowrap"
                     onClick={handleReplicateFlowchart}
                 >
-                    Replicate this flowchart
+                    复刻这张流程图截图
                 </button>
                 <button
-                    className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-1 px-2 rounded"
-                    onClick={() => setInput("Draw a cat for me")}
+                    className="rounded-full bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-800 transition hover:bg-gray-200 whitespace-nowrap"
+                    onClick={() => setInput("请随便画一只猫咪。")}
                 >
-                    Draw a cat for me
+                    随手涂鸦（轻松一下）
+                </button>
+                <button
+                    className="rounded-full bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-800 transition hover:bg-gray-200 whitespace-nowrap"
+                    onClick={() =>
+                        setInput("请创建一份包含前台、后台与支撑流程三列的服务蓝图。")
+                    }
+                >
+                    服务蓝图排版
                 </button>
             </div>
         </div>

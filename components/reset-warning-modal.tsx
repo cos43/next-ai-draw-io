@@ -25,10 +25,9 @@ export function ResetWarningModal({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Clear Everything?</DialogTitle>
+                    <DialogTitle>确认清空全部内容？</DialogTitle>
                     <DialogDescription>
-                        This will clear the current conversation and reset the
-                        diagram. This action cannot be undone.
+                        这将清空当前对话并重置图表，该操作无法撤销。
                     </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
@@ -36,10 +35,10 @@ export function ResetWarningModal({
                         variant="outline"
                         onClick={() => onOpenChange(false)}
                     >
-                        Cancel
+                        取消
                     </Button>
                     <Button variant="destructive" onClick={onClear}>
-                        Clear Everything
+                        清空全部
                     </Button>
                 </DialogFooter>
             </DialogContent>

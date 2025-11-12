@@ -1,12 +1,23 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { DrawIoEmbed } from "react-drawio";
-import ChatPanel from "@/components/chat-panel";
+import ChatPanelOptimized from "@/components/chat-panel-optimized";
 import { useDiagram } from "@/contexts/diagram-context";
+import { cn } from "@/lib/utils";
+import { MessageSquare, Minimize2 } from "lucide-react";
 
 export default function Home() {
     const { drawioRef, handleDiagramExport } = useDiagram();
     const [isMobile, setIsMobile] = useState(false);
+    const [drawioError, setDrawioError] = useState<string | null>(null);
+    const [isDrawioLoading, setIsDrawioLoading] = useState(true);
+    const [isChatVisible, setIsChatVisible] = useState(true);
+
+    // 可配置的 DrawIO baseUrl，支持环境变量或使用默认值
+    // 如果 embed.diagrams.net 无法访问，可以尝试：
+    // - https://app.diagrams.net (官方备用地址)
+    // - 或者使用本地部署的 draw.io
+    const drawioBaseUrl = process.env.NEXT_PUBLIC_DRAWIO_BASE_URL || "https://embed.diagrams.net";
 
     useEffect(() => {
         const checkMobile = () => {
@@ -23,34 +34,124 @@ export default function Home() {
         return () => window.removeEventListener("resize", checkMobile);
     }, []);
 
+    // 监听 DrawIO 加载超时
+    useEffect(() => {
+        // 设置超时检测 - 如果 15 秒后仍未加载成功，显示错误
+        const timeout = setTimeout(() => {
+            if (isDrawioLoading) {
+                setDrawioError("DrawIO 加载超时。如果 embed.diagrams.net 无法访问，请配置 NEXT_PUBLIC_DRAWIO_BASE_URL 环境变量。");
+                setIsDrawioLoading(false);
+            }
+        }, 15000); // 15秒超时
+
+        return () => {
+            clearTimeout(timeout);
+        };
+    }, [isDrawioLoading]);
+
+    const handleDrawioLoad = () => {
+        setIsDrawioLoading(false);
+        setDrawioError(null);
+    };
+
     if (isMobile) {
         return (
             <div className="flex items-center justify-center h-screen bg-gray-100">
                 <div className="text-center p-8">
                     <h1 className="text-2xl font-semibold text-gray-800">
-                        Please open this application on a desktop or laptop
+                        FlowPilot Studio 在桌面端体验更佳
                     </h1>
+                    <p className="mt-2 text-sm text-gray-500">
+                        请使用更大尺寸的屏幕，以便同时查看 draw.io 编辑器与智能助手。
+                    </p>
                 </div>
             </div>
         );
     }
 
+    const desktopGridCols = isChatVisible
+        ? "lg:grid-cols-[minmax(0,68%)_minmax(360px,1fr)]"
+        : "lg:grid-cols-[minmax(0,1fr)_0px]";
+
     return (
-        <div className="flex h-screen bg-gray-100">
-            <div className="w-2/3 p-1 h-full relative">
-                <DrawIoEmbed
-                    ref={drawioRef}
-                    onExport={handleDiagramExport}
-                    urlParameters={{
-                        spin: true,
-                        libraries: false,
-                        saveAndExit: false,
-                        noExitBtn: true,
-                    }}
-                />
+        <div className={cn("h-screen bg-gray-100 lg:grid", desktopGridCols)}>
+            <div className="relative h-full min-h-0 p-1">
+                <div className="pointer-events-none absolute top-4 right-4 z-20">
+                    <button
+                        type="button"
+                        onClick={() => setIsChatVisible((prev) => !prev)}
+                        className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white/90 px-3 py-1 text-xs font-medium text-gray-700 shadow-sm transition hover:bg-white"
+                    >
+                        {isChatVisible ? (
+                            <>
+                                <Minimize2 className="h-3.5 w-3.5" />
+                                专注画布
+                            </>
+                        ) : (
+                            <>
+                                <MessageSquare className="h-3.5 w-3.5" />
+                                显示聊天
+                            </>
+                        )}
+                    </button>
+                </div>
+                {drawioError ? (
+                    <div className="flex items-center justify-center h-full bg-white rounded border-2 border-red-200">
+                        <div className="text-center p-8 max-w-md">
+                            <h2 className="text-xl font-semibold text-red-600 mb-4">
+                                加载 DrawIO 失败
+                            </h2>
+                            <p className="text-gray-700 mb-4">{drawioError}</p>
+                            <div className="text-sm text-gray-600 text-left bg-gray-50 p-4 rounded">
+                                <p className="font-semibold mb-2">解决方案：</p>
+                                <ol className="list-decimal list-inside space-y-1">
+                                    <li>检查网络连接是否正常</li>
+                                    <li>如果 embed.diagrams.net 无法访问，创建 .env.local 文件并添加：</li>
+                                    <li className="ml-4 font-mono text-xs bg-white p-2 rounded mt-2">
+                                        NEXT_PUBLIC_DRAWIO_BASE_URL=https://app.diagrams.net
+                                    </li>
+                                    <li>然后重启开发服务器</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <>
+                        {isDrawioLoading && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-10">
+                                <div className="text-center">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                                    <p className="text-gray-600">正在加载 DrawIO 编辑器...</p>
+                                </div>
+                            </div>
+                        )}
+                        <DrawIoEmbed
+                            ref={drawioRef}
+                            baseUrl={drawioBaseUrl}
+                            onExport={handleDiagramExport}
+                            onLoad={handleDrawioLoad}
+                            urlParameters={{
+                                spin: true,
+                                libraries: false,
+                                saveAndExit: false,
+                                noExitBtn: true,
+                            }}
+                        />
+                    </>
+                )}
             </div>
-            <div className="w-1/3 h-full p-1">
-                <ChatPanel />
+            <div
+                className={cn(
+                    "hidden h-full min-h-0 p-1 transition-all duration-300 lg:block",
+                    isChatVisible
+                        ? "opacity-100"
+                        : "pointer-events-none opacity-0 translate-x-4"
+                )}
+            >
+                <ChatPanelOptimized
+                    onCollapse={() => setIsChatVisible(false)}
+                    isCollapsible
+                />
             </div>
         </div>
     );

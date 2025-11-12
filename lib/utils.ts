@@ -188,7 +188,7 @@ export function replaceXMLParts(
 ): string {
   // Format the XML first to ensure consistent line breaks
   let result = formatXML(xmlContent);
-  let lastProcessedIndex = 0;
+  let nextSearchHintLine = 0;
 
   for (const { search, replace } of searchReplacePairs) {
     // Also format the search content for consistency
@@ -203,48 +203,24 @@ export function replaceXMLParts(
       searchLines.pop();
     }
 
-    // Find the line number where lastProcessedIndex falls
-    let startLineNum = 0;
-    let currentIndex = 0;
-    while (currentIndex < lastProcessedIndex && startLineNum < resultLines.length) {
-      currentIndex += resultLines[startLineNum].length + 1; // +1 for \n
-      startLineNum++;
-    }
+    const searchStartCandidates = Array.from(
+      new Set([Math.max(0, nextSearchHintLine), 0])
+    );
 
     // Try to find exact match starting from lastProcessedIndex
     let matchFound = false;
     let matchStartLine = -1;
     let matchEndLine = -1;
 
-    // First try: exact match
-    for (let i = startLineNum; i <= resultLines.length - searchLines.length; i++) {
-      let matches = true;
-
-      for (let j = 0; j < searchLines.length; j++) {
-        if (resultLines[i + j] !== searchLines[j]) {
-          matches = false;
-          break;
-        }
-      }
-
-      if (matches) {
-        matchStartLine = i;
-        matchEndLine = i + searchLines.length;
-        matchFound = true;
-        break;
-      }
-    }
-
-    // Second try: line-trimmed match (fallback)
-    if (!matchFound) {
-      for (let i = startLineNum; i <= resultLines.length - searchLines.length; i++) {
+    const tryMatch = (
+      startLine: number,
+      comparator: (originalLine: string, searchLine: string) => boolean
+    ): boolean => {
+      for (let i = Math.max(0, startLine); i <= resultLines.length - searchLines.length; i++) {
         let matches = true;
 
         for (let j = 0; j < searchLines.length; j++) {
-          const originalTrimmed = resultLines[i + j].trim();
-          const searchTrimmed = searchLines[j].trim();
-
-          if (originalTrimmed !== searchTrimmed) {
+          if (!comparator(resultLines[i + j], searchLines[j])) {
             matches = false;
             break;
           }
@@ -254,6 +230,24 @@ export function replaceXMLParts(
           matchStartLine = i;
           matchEndLine = i + searchLines.length;
           matchFound = true;
+          return true;
+        }
+      }
+
+      return false;
+    };
+
+    // First try: exact match
+    for (const startLine of searchStartCandidates) {
+      if (tryMatch(startLine, (a, b) => a === b)) {
+        break;
+      }
+    }
+
+    // Second try: line-trimmed match (fallback)
+    if (!matchFound) {
+      for (const startLine of searchStartCandidates) {
+        if (tryMatch(startLine, (a, b) => a.trim() === b.trim())) {
           break;
         }
       }
@@ -262,7 +256,7 @@ export function replaceXMLParts(
     // Third try: substring match as last resort (for single-line XML)
     if (!matchFound) {
       // Try to find as a substring in the entire content
-      const searchStr = search.trim();
+      const searchStr = formattedSearch.trim();
       const resultStr = result;
       const index = resultStr.indexOf(searchStr);
 
@@ -271,6 +265,7 @@ export function replaceXMLParts(
         result = resultStr.substring(0, index) + replace.trim() + resultStr.substring(index + searchStr.length);
         // Re-format after substring replacement
         result = formatXML(result);
+        nextSearchHintLine = 0;
         continue; // Skip the line-based replacement below
       }
     }
@@ -296,11 +291,8 @@ export function replaceXMLParts(
 
     result = newResultLines.join('\n');
 
-    // Update lastProcessedIndex to the position after the replacement
-    lastProcessedIndex = 0;
-    for (let i = 0; i < matchStartLine + replaceLines.length; i++) {
-      lastProcessedIndex += newResultLines[i].length + 1;
-    }
+    // Update hint to resume searching near the current edit while still allowing earlier matches when needed
+    nextSearchHintLine = matchStartLine + replaceLines.length;
   }
 
   return result;

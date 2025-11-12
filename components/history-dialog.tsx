@@ -21,24 +21,23 @@ export function HistoryDialog({
     showHistory,
     onToggleHistory,
 }: HistoryDialogProps) {
-    const { loadDiagram: onDisplayChart, diagramHistory } = useDiagram();
+    const { restoreDiagramAt, diagramHistory } = useDiagram();
 
     return (
         <Dialog open={showHistory} onOpenChange={onToggleHistory}>
             <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>Diagram History</DialogTitle>
+                    <DialogTitle>图表历史</DialogTitle>
                     <DialogDescription>
-                        Here saved each diagram before AI modification.
+                        这里保留了每次 AI 修改前的图表。
                         <br />
-                        Click on a diagram to restore it
+                        点击任意缩略图即可恢复。
                     </DialogDescription>
                 </DialogHeader>
 
                 {diagramHistory.length === 0 ? (
                     <div className="text-center p-4 text-gray-500">
-                        No history available yet. Send messages to create
-                        diagram history.
+                        暂无历史记录，发送消息后会自动保存版本。
                     </div>
                 ) : (
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4 py-4">
@@ -47,21 +46,21 @@ export function HistoryDialog({
                                 key={index}
                                 className="border rounded-md p-2 cursor-pointer hover:border-primary transition-colors"
                                 onClick={() => {
-                                    onDisplayChart(item.xml);
+                                    restoreDiagramAt(index);
                                     onToggleHistory(false);
                                 }}
                             >
                                 <div className="aspect-video bg-white rounded overflow-hidden flex items-center justify-center">
                                     <Image
                                         src={item.svg}
-                                        alt={`Diagram version ${index + 1}`}
+                                        alt={`图表版本 ${index + 1}`}
                                         width={200}
                                         height={100}
                                         className="object-contain w-full h-full p-1"
                                     />
                                 </div>
                                 <div className="text-xs text-center mt-1 text-gray-500">
-                                    Version {index + 1}
+                                    版本 {index + 1}
                                 </div>
                             </div>
                         ))}
@@ -73,7 +72,7 @@ export function HistoryDialog({
                         variant="outline"
                         onClick={() => onToggleHistory(false)}
                     >
-                        Close
+                        关闭
                     </Button>
                 </DialogFooter>
             </DialogContent>

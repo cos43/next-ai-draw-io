@@ -10,13 +10,15 @@ import {
     RotateCcw,
     Image as ImageIcon,
     History,
+    MoreHorizontal,
 } from "lucide-react";
 import { ButtonWithTooltip } from "@/components/button-with-tooltip";
 import { FilePreviewList } from "./file-preview-list";
 import { useDiagram } from "@/contexts/diagram-context";
 import { HistoryDialog } from "@/components/history-dialog";
+import { cn } from "@/lib/utils";
 
-interface ChatInputProps {
+interface ChatInputOptimizedProps {
     input: string;
     status: "submitted" | "streaming" | "ready" | "error";
     onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
@@ -26,9 +28,10 @@ interface ChatInputProps {
     onFileChange?: (files: File[]) => void;
     showHistory?: boolean;
     onToggleHistory?: (show: boolean) => void;
+    isCompactMode?: boolean;
 }
 
-export function ChatInput({
+export function ChatInputOptimized({
     input,
     status,
     onSubmit,
@@ -38,12 +41,14 @@ export function ChatInput({
     onFileChange = () => {},
     showHistory = false,
     onToggleHistory = () => {},
-}: ChatInputProps) {
+    isCompactMode = false,
+}: ChatInputOptimizedProps) {
     const { diagramHistory } = useDiagram();
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [showClearDialog, setShowClearDialog] = useState(false);
+    const [showToolMenu, setShowToolMenu] = useState(false);
 
     // Auto-resize textarea based on content
     const adjustTextareaHeight = useCallback(() => {
@@ -187,73 +192,115 @@ export function ChatInput({
                 className="min-h-[80px] resize-none transition-all duration-200 px-1 py-0"
             />
 
-            <div className="flex items-center gap-2">
-                <div className="mr-auto">
-                    <ButtonWithTooltip
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setShowClearDialog(true)}
-                        tooltipContent="清空当前对话与图表"
-                    >
-                        <RotateCcw className="mr-2 h-4 w-4" />
-                    </ButtonWithTooltip>
+            <div className="flex items-center justify-between">
+                {/* 左侧：清空按钮和工具菜单 */}
+                <div className="flex items-center gap-1">
+                    {isCompactMode ? (
+                        // 紧凑模式：使用更多按钮
+                        <div className="relative">
+                            <ButtonWithTooltip
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setShowToolMenu(!showToolMenu)}
+                                tooltipContent="显示更多工具"
+                            >
+                                <MoreHorizontal className="h-4 w-4" />
+                            </ButtonWithTooltip>
+                            {showToolMenu && (
+                                <div className="absolute bottom-full left-0 mb-2 rounded-lg border bg-white shadow-lg p-1 z-10">
+                                    <div className="flex flex-col gap-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowClearDialog(true);
+                                                setShowToolMenu(false);
+                                            }}
+                                            className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-gray-100"
+                                            disabled={status === "streaming"}
+                                        >
+                                            <RotateCcw className="h-4 w-4" />
+                                            清空对话
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                onToggleHistory(true);
+                                                setShowToolMenu(false);
+                                            }}
+                                            disabled={
+                                                status === "streaming" ||
+                                                diagramHistory.length === 0
+                                            }
+                                            className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-gray-100 disabled:opacity-50"
+                                        >
+                                            <History className="h-4 w-4" />
+                                            图表历史
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                triggerFileInput();
+                                                setShowToolMenu(false);
+                                            }}
+                                            disabled={status === "streaming"}
+                                            className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-gray-100 disabled:opacity-50"
+                                        >
+                                            <ImageIcon className="h-4 w-4" />
+                                            上传图片
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        // 正常模式：显示所有按钮
+                        <>
+                            <ButtonWithTooltip
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setShowClearDialog(true)}
+                                tooltipContent="清空当前对话与图表"
+                                disabled={status === "streaming"}
+                            >
+                                <RotateCcw className="h-4 w-4" />
+                            </ButtonWithTooltip>
 
-                    {/* Warning Modal */}
-                    <ResetWarningModal
-                        open={showClearDialog}
-                        onOpenChange={setShowClearDialog}
-                        onClear={handleClear}
-                    />
+                            <ButtonWithTooltip
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => onToggleHistory(true)}
+                                disabled={
+                                    status === "streaming" ||
+                                    diagramHistory.length === 0
+                                }
+                                tooltipContent="查看图表变更记录"
+                            >
+                                <History className="h-4 w-4" />
+                            </ButtonWithTooltip>
 
-                    <HistoryDialog
-                        showHistory={showHistory}
-                        onToggleHistory={onToggleHistory}
-                    />
+                            <ButtonWithTooltip
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={triggerFileInput}
+                                disabled={status === "streaming"}
+                                tooltipContent="上传图片"
+                            >
+                                <ImageIcon className="h-4 w-4" />
+                            </ButtonWithTooltip>
+                        </>
+                    )}
                 </div>
-                <div className="flex gap-2">
-                    {/* History Button */}
-                    <ButtonWithTooltip
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => onToggleHistory(true)}
-                        disabled={
-                            status === "streaming" ||
-                            diagramHistory.length === 0
-                        }
-                        title="图表历史"
-                        tooltipContent="查看图表变更记录"
-                    >
-                        <History className="h-4 w-4" />
-                    </ButtonWithTooltip>
 
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={triggerFileInput}
-                        disabled={status === "streaming"}
-                        title="上传图片"
-                    >
-                        <ImageIcon className="h-4 w-4" />
-                    </Button>
-
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        className="hidden"
-                        onChange={handleFileChange}
-                        accept="image/*"
-                        multiple
-                        disabled={status === "streaming"}
-                    />
-                </div>
-
+                {/* 右侧：发送按钮 */}
                 <Button
                     type="submit"
                     disabled={status === "streaming" || !input.trim()}
                     className="transition-opacity"
+                    size="sm"
                     aria-label={
                         status === "streaming"
                             ? "正在发送消息…"
@@ -268,6 +315,30 @@ export function ChatInput({
                     发送
                 </Button>
             </div>
+
+            {/* 隐藏的文件输入 */}
+            <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                onChange={handleFileChange}
+                accept="image/*"
+                multiple
+                disabled={status === "streaming"}
+            />
+
+            {/* 警告对话框 */}
+            <ResetWarningModal
+                open={showClearDialog}
+                onOpenChange={setShowClearDialog}
+                onClear={handleClear}
+            />
+
+            {/* 历史对话框 */}
+            <HistoryDialog
+                showHistory={showHistory}
+                onToggleHistory={onToggleHistory}
+            />
         </form>
     );
 }

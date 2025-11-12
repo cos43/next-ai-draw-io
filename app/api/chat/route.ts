@@ -1,20 +1,13 @@
-import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { openai } from '@ai-sdk/openai';
-import { google } from '@ai-sdk/google';
-import { smoothStream, streamText, convertToModelMessages } from 'ai';
-import { createOpenRouter } from '@openrouter/ai-sdk-provider';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { createOpenAI } from '@ai-sdk/openai';
+import { streamText, convertToModelMessages } from "ai";
 
 import { z } from "zod/v3";
-import { replaceXMLParts } from "@/lib/utils";
+import { resolveChatModel } from "@/lib/server-models";
 
 export const maxDuration = 60
-const openrouter = createOpenRouter({ apiKey: process.env.OPENROUTER_API_KEY });
 
 export async function POST(req: Request) {
   try {
-    const { messages, xml } = await req.json();
+    const { messages, xml, modelOverride } = await req.json();
 
     const systemMessage = `
 You are an expert diagram creation assistant specializing in draw.io XML generation.
@@ -122,15 +115,14 @@ ${lastMessageText}
       }
     }
 
-    console.log("Enhanced messages:", enhancedMessages);
+    const resolvedModel = resolveChatModel(modelOverride);
+    console.log("Enhanced messages:", enhancedMessages, "model:", resolvedModel.id);
 
     const result = streamText({
       // model: google("gemini-2.5-flash-preview-05-20"),
       // model: google("gemini-2.5-pro"),
-      // model: bedrock('anthropic.claude-sonnet-4-20250514-v1:0'),
       system: systemMessage,
-      model: bedrock('global.anthropic.claude-sonnet-4-5-20250929-v1:0'),
-      // model: openrouter('moonshotai/kimi-k2:free'),
+      model: resolvedModel.model,
       // model: model,
       // providerOptions: {
       //   google: {
@@ -144,13 +136,6 @@ ${lastMessageText}
       //     reasoningEffort: "minimal"
       //   },
       // },
-      providerOptions: {
-        anthropic: {
-          additionalModelRequestFields: {
-            anthropic_beta: ['fine-grained-tool-streaming-2025-05-14']
-          }
-        }
-      },
       messages: enhancedMessages,
       tools: {
         // Client-side tool that will be executed on the client

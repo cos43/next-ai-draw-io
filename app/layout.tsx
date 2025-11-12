@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "Next-AI-Drawio",
-    description: "An AI-powered drawing tool that integrates with draw.io",
+    title: "FlowPilot 智能画布",
+    description: "将 draw.io 与对话式 AI 助手结合的智能制图工作台。",
 };
 
 export default function RootLayout({
@@ -26,7 +26,7 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en">
+        <html lang="zh-CN">
             <body
                 className={`${geistSans.variable} ${geistMono.variable} antialiased`}
             >

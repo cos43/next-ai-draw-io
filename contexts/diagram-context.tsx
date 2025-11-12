@@ -8,12 +8,14 @@ interface DiagramContextType {
     chartXML: string;
     latestSvg: string;
     diagramHistory: { svg: string; xml: string }[];
+    activeVersionIndex: number;
     loadDiagram: (chart: string) => void;
     handleExport: () => void;
     resolverRef: React.Ref<((value: string) => void) | null>;
     drawioRef: React.Ref<DrawIoEmbedRef | null>;
     handleDiagramExport: (data: any) => void;
     clearDiagram: () => void;
+    restoreDiagramAt: (index: number) => void;
 }
 
 const DiagramContext = createContext<DiagramContextType | undefined>(undefined);
@@ -24,6 +26,7 @@ export function DiagramProvider({ children }: { children: React.ReactNode }) {
     const [diagramHistory, setDiagramHistory] = useState<
         { svg: string; xml: string }[]
     >([]);
+    const [activeVersionIndex, setActiveVersionIndex] = useState<number>(-1);
     const drawioRef = useRef<DrawIoEmbedRef | null>(null);
     const resolverRef = useRef<((value: string) => void) | null>(null);
 
@@ -47,13 +50,17 @@ export function DiagramProvider({ children }: { children: React.ReactNode }) {
         const extractedXML = extractDiagramXML(data.data);
         setChartXML(extractedXML);
         setLatestSvg(data.data);
-        setDiagramHistory((prev) => [
-            ...prev,
-            {
-                svg: data.data,
-                xml: extractedXML,
-            },
-        ]);
+        setDiagramHistory((prev) => {
+            const updated = [
+                ...prev,
+                {
+                    svg: data.data,
+                    xml: extractedXML,
+                },
+            ];
+            setActiveVersionIndex(updated.length - 1);
+            return updated;
+        });
         if (resolverRef.current) {
             resolverRef.current(extractedXML);
             resolverRef.current = null;
@@ -66,6 +73,18 @@ export function DiagramProvider({ children }: { children: React.ReactNode }) {
         setChartXML(emptyDiagram);
         setLatestSvg("");
         setDiagramHistory([]);
+        setActiveVersionIndex(-1);
+    };
+
+    const restoreDiagramAt = (index: number) => {
+        const entry = diagramHistory[index];
+        if (!entry) {
+            return;
+        }
+        loadDiagram(entry.xml);
+        setChartXML(entry.xml);
+        setLatestSvg(entry.svg);
+        setActiveVersionIndex(index);
     };
 
     return (
@@ -74,12 +93,14 @@ export function DiagramProvider({ children }: { children: React.ReactNode }) {
                 chartXML,
                 latestSvg,
                 diagramHistory,
+                activeVersionIndex,
                 loadDiagram,
                 handleExport,
                 resolverRef,
                 drawioRef,
                 handleDiagramExport,
                 clearDiagram,
+                restoreDiagramAt,
             }}
         >
             {children}
