@@ -1,6 +1,7 @@
 import { FileText, Settings, Zap } from "lucide-react";
 
 import type { QuickActionDefinition } from "@/components/quick-action-bar";
+import type { FlowPilotBriefState } from "@/components/flowpilot-brief";
 import type { ToolPanel, ToolbarActionDefinition } from "./types";
 
 export const FLOWPILOT_AI_CALIBRATION_PROMPT = `### FlowPilot 校准舱 · AI 重排指令
@@ -117,5 +118,107 @@ export const QUICK_ACTIONS: QuickActionDefinition[] = [
         prompt:
             "请生成一张以“AI 增长策略”为中心的思维导图，分支包括获客、活跃、留存、变现、组织，二级节点写出具体举措并保持草稿质感。",
         badge: "灵感",
+    },
+];
+
+export type FlowShowcasePreset = {
+    id: string;
+    title: string;
+    description: string;
+    caption: string;
+    prompt: string;
+    tags: string[];
+    previewLabel: string;
+    accent: {
+        from: string;
+        to: string;
+    };
+    brief: FlowPilotBriefState;
+};
+
+export const FLOW_SHOWCASE_PRESETS: FlowShowcasePreset[] = [
+    {
+        id: "sketch-strategy-canvas",
+        title: "手绘战略蓝本",
+        description: "旅程 + 思维导图组合，适合策略工作坊快速定调。",
+        caption: "Journey × Mindmap",
+        prompt:
+            "请用 draw.io 草稿主题绘制一个“战略工作坊”样板：以客户旅程四阶段为主轴，在每个阶段下展开目标、关键触点、情绪、机会，用思维导图/便签表现发散要点，整体保持手写草稿质感。",
+        tags: ["草稿风", "旅程", "导图"],
+        previewLabel: "Sketch Playbook",
+        accent: {
+            from: "#fde68a",
+            to: "#f97316",
+        },
+        brief: {
+            intent: "draft",
+            tone: "sketch",
+            focus: ["story"],
+            diagramTypes: ["journey", "mindmap"],
+            guardrails: ["singleViewport", "contrast"],
+        },
+    },
+    {
+        id: "enterprise-architecture-grid",
+        title: "企业级组件样板",
+        description: "三层组件 + 部署拓扑，突出依赖与安全域。",
+        caption: "Component Grid",
+        prompt:
+            "请生成一张“数字体验平台”示例：上层为体验/渠道，中层为业务服务（会员、订单、库存、结算、推荐），下层为支撑（数据湖、消息总线、监控）。为每个组件标注 API/协议，并在右侧补充部署示意（公有云/私有云）。",
+        tags: ["组件图", "部署", "企业风"],
+        previewLabel: "Enterprise Blueprint",
+        accent: {
+            from: "#93c5fd",
+            to: "#1d4ed8",
+        },
+        brief: {
+            intent: "draft",
+            tone: "enterprise",
+            focus: ["dataflow", "swimlane"],
+            diagramTypes: ["component", "deployment"],
+            guardrails: ["singleViewport", "respectLabels"],
+        },
+    },
+    {
+        id: "customer-success-gallery",
+        title: "客户成功续约剧本",
+        description: "旅程健康度 + 机会矩阵的复合表达。",
+        caption: "Journey Health",
+        prompt:
+            "请绘制一张客户成功样板：左侧是发现、上线、扩散、续约四阶段旅程（含目标、触点、情绪）；右侧是 2×3 增购机会矩阵（行=现有团队/新团队，列=功能深用/增值模块/服务包），并用连接线指出高优先级机会。",
+        tags: ["CSM", "旅程", "续约"],
+        previewLabel: "Success Studio",
+        accent: {
+            from: "#a5f3fc",
+            to: "#14b8a6",
+        },
+        brief: {
+            intent: "draft",
+            tone: "balanced",
+            focus: ["story"],
+            diagramTypes: ["journey", "activity"],
+            guardrails: ["singleViewport", "contrast"],
+        },
+    },
+    {
+        id: "incident-response-loop",
+        title: "应急指挥闭环",
+        description: "指挥链、时间轴与 Runbook 多维一体。",
+        caption: "Incident Loop",
+        prompt:
+            "请创建一个 SRE 战情室样板：上方为 4 阶段时间轴（检测、隔离、缓解、复盘），中间是指挥链泳道（指挥官、技术、业务、对外），下方列出自动化 Runbook 步骤与所用工具，突出升级阈值与沟通节点。",
+        tags: ["SRE", "Runbook", "指挥链"],
+        previewLabel: "War Room",
+        accent: {
+            from: "#c084fc",
+            to: "#7c3aed",
+        },
+        brief: {
+            intent: "polish",
+            tone: "balanced",
+            focus: ["swimlane", "dataflow"],
+            diagramTypes: ["activity", "state"],
+            guardrails: ["singleViewport", "respectLabels"],
+        },
     },
 ];

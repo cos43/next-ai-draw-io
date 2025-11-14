@@ -39,6 +39,7 @@ import { cn, formatXML, replaceXMLParts } from "@/lib/utils";
 import { SessionStatus } from "@/components/session-status";
 import { QuickActionBar } from "@/components/quick-action-bar";
 import type { QuickActionDefinition } from "@/components/quick-action-bar";
+import { FlowShowcaseGallery } from "./flow-showcase-gallery";
 import {
     FlowPilotBriefLauncher,
     FlowPilotBriefState,
@@ -58,7 +59,9 @@ import { IntelligenceToolbar } from "@/features/chat-panel/components/intelligen
 import { ToolPanelSidebar } from "@/features/chat-panel/components/tool-panel-sidebar";
 import {
     FLOWPILOT_AI_CALIBRATION_PROMPT,
+    FLOW_SHOWCASE_PRESETS,
     QUICK_ACTIONS,
+    type FlowShowcasePreset,
 } from "@/features/chat-panel/constants";
 import { useComparisonWorkbench } from "@/features/chat-panel/hooks/use-comparison-workbench";
 import { useDiagramOrchestrator } from "@/features/chat-panel/hooks/use-diagram-orchestrator";
@@ -158,7 +161,9 @@ export default function ChatPanelOptimized({
         diagramTypes: ["sequence", "activity"],
         guardrails: ["singleViewport", "respectLabels"],
     });
-    const [commandTab, setCommandTab] = useState<"starter" | "report">("starter");
+    const [commandTab, setCommandTab] = useState<"starter" | "report" | "showcase">(
+        "starter"
+    );
     const [activeToolPanel, setActiveToolPanel] = useState<ToolPanel | null>(null);
     const [isToolSidebarOpen, setIsToolSidebarOpen] = useState(false);
     const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
@@ -625,6 +630,16 @@ export default function ChatPanelOptimized({
         }
     };
 
+    const handleShowcasePreset = (preset: FlowShowcasePreset) => {
+        if (status === "streaming") return;
+        if (!ensureBranchSelectionSettled()) return;
+        setBriefState(preset.brief);
+        setInput(preset.prompt);
+        if (files.length > 0) {
+            handleFileChange([]);
+        }
+    };
+
     const handleBranchSwitch = useCallback(
         async (branchId: string) => {
             if (branchId === activeBranchId) {
@@ -803,14 +818,14 @@ export default function ChatPanelOptimized({
             <div className="space-y-3">
                 <div className="flex items-center justify-between">
                     <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                        快速复用灵感或述职模板
+                        快速复用灵感 / 述职 / 样板间
                     </div>
-                    <div className="inline-flex rounded-full bg-slate-100 p-1">
+                    <div className="inline-flex min-w-[220px] items-center rounded-full bg-slate-100 p-1">
                         <button
                             type="button"
                             onClick={() => setCommandTab("starter")}
                             className={cn(
-                                "rounded-full px-3 py-1 text-xs font-semibold transition",
+                                "rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap transition",
                                 commandTab === "starter"
                                     ? "bg-white text-slate-900 shadow"
                                     : "text-slate-500"
@@ -822,13 +837,25 @@ export default function ChatPanelOptimized({
                             type="button"
                             onClick={() => setCommandTab("report")}
                             className={cn(
-                                "rounded-full px-3 py-1 text-xs font-semibold transition",
+                                "rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap transition",
                                 commandTab === "report"
                                     ? "bg-white text-slate-900 shadow"
                                     : "text-slate-500"
                             )}
                         >
                             述职模板
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setCommandTab("showcase")}
+                            className={cn(
+                                "rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap transition",
+                                commandTab === "showcase"
+                                    ? "bg-white text-slate-900 shadow"
+                                    : "text-slate-500"
+                            )}
+                        >
+                            样板间
                         </button>
                     </div>
                 </div>
@@ -841,12 +868,18 @@ export default function ChatPanelOptimized({
                         title=""
                         subtitle=""
                     />
-                ) : (
+                ) : commandTab === "report" ? (
                     <ReportBlueprintTray
                         disabled={status === "streaming" || requiresBranchDecision}
                         onUseTemplate={(template) =>
                             handleBlueprintTemplate(template.prompt)
                         }
+                    />
+                ) : (
+                    <FlowShowcaseGallery
+                        presets={FLOW_SHOWCASE_PRESETS}
+                        disabled={status === "streaming" || requiresBranchDecision}
+                        onSelect={handleShowcasePreset}
                     />
                 )}
             </div>
