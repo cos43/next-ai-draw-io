@@ -9,6 +9,8 @@ type SessionStatusProps = {
     diagramVersions: number;
     attachmentCount: number;
     exchanges: number;
+    variant?: "panel" | "inline";
+    className?: string;
 };
 
 const STATUS_COPY: Record<
@@ -45,6 +47,8 @@ export function SessionStatus({
     diagramVersions,
     attachmentCount,
     exchanges,
+    variant = "panel",
+    className,
 }: SessionStatusProps) {
     const statusCopy = STATUS_COPY[status] ?? STATUS_COPY.ready;
     const meta = [
@@ -67,9 +71,59 @@ export function SessionStatus({
             icon: META_ICONS.exchanges,
         },
     ];
+    const inlineMeta = meta.filter(({ id }) => {
+        if (id === "attachments") {
+            return attachmentCount > 0;
+        }
+        if (id === "versions") {
+            return diagramVersions > 0;
+        }
+        return true;
+    });
+
+    if (variant === "inline") {
+        return (
+            <div
+                className={cn(
+                    "flex w-full flex-wrap items-center gap-x-3 gap-y-1 text-[11px] leading-tight text-slate-500",
+                    className
+                )}
+            >
+                <div className="flex items-center gap-1.5 font-medium text-slate-600">
+                    <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                    <span>{statusCopy.label}</span>
+                    <span className="text-slate-300">|</span>
+                    <span className="text-sm font-semibold text-slate-900">
+                        {providerLabel}
+                    </span>
+                </div>
+                {inlineMeta.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-slate-500">
+                        {inlineMeta.map(({ id, label, value, icon: Icon }) => (
+                            <span
+                                key={id}
+                                className="inline-flex items-center gap-1 whitespace-nowrap"
+                            >
+                                <Icon className="h-3 w-3 text-slate-400" />
+                                <span className="font-medium text-slate-700">{value}</span>
+                                <span className="hidden text-[10px] uppercase tracking-wide text-slate-400 md:inline">
+                                    {label}
+                                </span>
+                            </span>
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+    }
 
     return (
-        <div className="rounded-2xl border bg-white/80 px-4 py-3 text-sm shadow-sm">
+        <div
+            className={cn(
+                "rounded-2xl border bg-white/80 px-4 py-3 text-sm shadow-sm",
+                className
+            )}
+        >
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1">
                     <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">

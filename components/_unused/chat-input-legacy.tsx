@@ -12,7 +12,7 @@ import {
     History,
 } from "lucide-react";
 import { ButtonWithTooltip } from "@/components/button-with-tooltip";
-import { FilePreviewList } from "./file-preview-list";
+import { FilePreviewList } from "@/components/file-preview-list";
 import { useDiagram } from "@/contexts/diagram-context";
 import { HistoryDialog } from "@/components/history-dialog";
 import { cn } from "@/lib/utils";
@@ -221,7 +221,7 @@ export function ChatInput({
                         placeholder="描述你想让流程图如何调整，支持拖拽或粘贴图片作为参考素材"
                         disabled={status === "streaming"}
                         aria-label="聊天输入框"
-                        className="h-auto min-h-[56px] resize-none border-0 !border-none bg-transparent p-0 text-sm leading-6 text-slate-900 outline-none focus-visible:border-0 focus-visible:ring-0 focus-visible:outline-none focus-visible:!border-none focus-visible:!outline-none"
+                        className="h-auto min-h-[32px] resize-none border-0 !border-none bg-transparent p-0 text-sm leading-5 text-slate-900 outline-none shadow-none focus-visible:border-0 focus-visible:ring-0 focus-visible:outline-none focus-visible:!border-none focus-visible:!outline-none focus-visible:shadow-none"
                     />
                 </div>
 

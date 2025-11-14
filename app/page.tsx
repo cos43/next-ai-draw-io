@@ -5,9 +5,10 @@ import ChatPanelOptimized from "@/components/chat-panel-optimized";
 import { useDiagram } from "@/contexts/diagram-context";
 import { cn } from "@/lib/utils";
 import { MessageSquare, Minimize2 } from "lucide-react";
+import { useDrawioDiagnostics } from "@/hooks/use-drawio-diagnostics";
 
 export default function Home() {
-    const { drawioRef, handleDiagramExport } = useDiagram();
+    const { drawioRef, handleDiagramExport, setRuntimeError } = useDiagram();
     const [isMobile, setIsMobile] = useState(false);
     const [drawioError, setDrawioError] = useState<string | null>(null);
     const [isDrawioLoading, setIsDrawioLoading] = useState(true);
@@ -18,6 +19,18 @@ export default function Home() {
     // - https://app.diagrams.net (官方备用地址)
     // - 或者使用本地部署的 draw.io
     const drawioBaseUrl = process.env.NEXT_PUBLIC_DRAWIO_BASE_URL || "https://embed.diagrams.net";
+
+    useDrawioDiagnostics({
+        baseUrl: drawioBaseUrl,
+        onRuntimeError: (payload) => {
+            setRuntimeError(payload);
+        },
+        onRuntimeSignal: (event) => {
+            if (event?.event === "load") {
+                setRuntimeError(null);
+            }
+        },
+    });
 
     useEffect(() => {
         const checkMobile = () => {

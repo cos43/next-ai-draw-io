@@ -10,9 +10,11 @@ import {
     RotateCcw,
     Image as ImageIcon,
     History,
+    Sparkles,
+    Settings,
 } from "lucide-react";
 import { ButtonWithTooltip } from "@/components/button-with-tooltip";
-import { FilePreviewList } from "./file-preview-list";
+import { FilePreviewList } from "@/components/file-preview-list";
 import { useDiagram } from "@/contexts/diagram-context";
 import { HistoryDialog } from "@/components/history-dialog";
 import { ModelSelector } from "@/components/model-selector";
@@ -31,6 +33,10 @@ interface ChatInputOptimizedProps {
     isCompactMode?: boolean;
     selectedModelId?: string;
     onModelChange?: (modelId: string) => void;
+    onCompareRequest?: () => void;
+    onOpenComparisonConfig?: () => void;
+    isCompareLoading?: boolean;
+    interactionLocked?: boolean;
 }
 
 export function ChatInputOptimized({
@@ -46,6 +52,10 @@ export function ChatInputOptimized({
     isCompactMode = false,
     selectedModelId = "app-dbcwt0-1750310518239209222",
     onModelChange = () => {},
+    onCompareRequest = () => {},
+    onOpenComparisonConfig = () => {},
+    isCompareLoading = false,
+    interactionLocked = false,
 }: ChatInputOptimizedProps) {
     const { diagramHistory } = useDiagram();
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -228,7 +238,7 @@ export function ChatInputOptimized({
                         placeholder="描述你想让流程图如何调整，支持拖拽或粘贴图片作为参考素材"
                         disabled={status === "streaming"}
                         aria-label="聊天输入框"
-                        className="h-auto min-h-[56px] resize-none border-0 !border-none bg-transparent p-0 text-sm leading-6 text-slate-900 outline-none focus-visible:border-0 focus-visible:ring-0 focus-visible:outline-none focus-visible:!border-none focus-visible:!outline-none"
+                        className="h-auto min-h-[56px] resize-none border-0 !border-none bg-transparent p-0 text-sm leading-5 text-slate-900 outline-none shadow-none focus-visible:border-0 focus-visible:ring-0 focus-visible:outline-none focus-visible:!border-none focus-visible:!outline-none focus-visible:shadow-none"
                     />
                 </div>
 
@@ -253,7 +263,9 @@ export function ChatInputOptimized({
                             className="h-7 w-7 rounded-full"
                             onClick={() => onToggleHistory(true)}
                             disabled={
-                                status === "streaming" || diagramHistory.length === 0
+                                status === "streaming" ||
+                                diagramHistory.length === 0 ||
+                                interactionLocked
                             }
                             tooltipContent="查看图表变更记录"
                         >
@@ -266,22 +278,63 @@ export function ChatInputOptimized({
                             size="icon"
                             className="h-7 w-7 rounded-full"
                             onClick={triggerFileInput}
-                            disabled={status === "streaming"}
+                            disabled={status === "streaming" || interactionLocked}
                             tooltipContent="上传图片"
                         >
                             <ImageIcon className="h-4 w-4" />
                         </ButtonWithTooltip>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         <ModelSelector
                             selectedModelId={selectedModelId}
                             onModelChange={onModelChange}
-                            disabled={status === "streaming"}
+                            disabled={status === "streaming" || interactionLocked}
                         />
                         <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 gap-1 rounded-full px-3 text-xs font-semibold text-slate-600 hover:text-slate-900"
+                            onClick={onOpenComparisonConfig}
+                            disabled={status === "streaming" || interactionLocked}
+                        >
+                            <Settings className="h-3.5 w-3.5" />
+                            对比设置
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            className="h-8 gap-1 rounded-full bg-slate-900/10 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-900/20 disabled:opacity-60"
+                            disabled={
+                                status === "streaming" ||
+                                !input.trim() ||
+                                isCompareLoading ||
+                                interactionLocked
+                            }
+                            onClick={onCompareRequest}
+                            aria-label="使用当前提示词进行多模型对比"
+                        >
+                            {isCompareLoading ? (
+                                <>
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    正在生成…
+                                </>
+                            ) : (
+                                <>
+                                    <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                                    对比生成
+                                </>
+                            )}
+                        </Button>
+                        <Button
                             type="submit"
-                            disabled={status === "streaming" || !input.trim()}
+                            disabled={
+                                status === "streaming" ||
+                                !input.trim() ||
+                                interactionLocked
+                            }
                             className="h-8 min-w-[88px] gap-2 rounded-full bg-slate-900 text-white shadow-sm transition hover:bg-slate-900/90 disabled:opacity-60"
                             size="sm"
                             aria-label={
@@ -308,7 +361,7 @@ export function ChatInputOptimized({
                 onChange={handleFileChange}
                 accept="image/*"
                 multiple
-                disabled={status === "streaming"}
+                disabled={status === "streaming" || interactionLocked}
             />
 
             <ResetWarningModal

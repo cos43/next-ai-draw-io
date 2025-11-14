@@ -365,3 +365,57 @@ export function extractDiagramXML(xml_svg_string: string): string {
     throw error; // Re-throw for caller handling
   }
 }
+
+export function encodeDiagramXml(xml: string): string {
+  if (!xml || xml.trim().length === 0) {
+    throw new Error("XML 内容不能为空");
+  }
+
+  const urlEncoded = encodeURIComponent(xml);
+  const encoder = new TextEncoder();
+  const utf8 = encoder.encode(urlEncoded);
+  const compressed = pako.deflate(utf8, { level: 9, windowBits: -15 });
+
+  let binary = "";
+  for (let i = 0; i < compressed.length; i++) {
+    binary += String.fromCharCode(compressed[i]);
+  }
+
+  return btoa(binary);
+}
+
+export function decodeDiagramXml(encoded: string): string | null {
+  try {
+    if (!encoded || encoded.trim().length === 0) {
+      return null;
+    }
+    const binary = atob(encoded);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    const decompressed = pako.inflate(bytes, { windowBits: -15 });
+    const decoder = new TextDecoder("utf-8");
+    const decoded = decoder.decode(decompressed);
+    return decodeURIComponent(decoded);
+  } catch (error) {
+    console.error("Failed to decode diagram xml:", error);
+    return null;
+  }
+}
+
+export function toBase64Xml(xml: string): string {
+  if (!xml || xml.trim().length === 0) {
+    throw new Error("XML 内容不能为空");
+  }
+  try {
+    if (typeof window === "undefined") {
+      // eslint-disable-next-line n/no-unsupported-features/node-builtins
+      return Buffer.from(xml, "utf-8").toString("base64");
+    }
+    return window.btoa(unescape(encodeURIComponent(xml)));
+  } catch (error) {
+    console.error("Failed to encode XML to base64:", error);
+    throw error;
+  }
+}

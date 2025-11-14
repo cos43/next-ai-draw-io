@@ -71,6 +71,49 @@ function extractJsonPayload(text: string): { summary: string; xml: string } {
     };
 }
 
+async function exportDiagramPreview(xml: string): Promise<{
+    image?: string;
+}> {
+    if (!xml || xml.trim().length === 0) {
+        return {};
+    }
+    try {
+        const params = new URLSearchParams();
+        params.set("format", "png");
+        params.set("embedImages", "1");
+        params.set("border", "0");
+        params.set("base64", "1");
+        params.set("spin", "0");
+        params.set("scale", "1");
+        params.set("w", "800");
+        params.set("h", "600");
+        params.set("xml", xml);
+
+        const response = await fetch("https://app.diagrams.net/export3", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: params.toString(),
+        });
+
+        if (!response.ok) {
+            return {};
+        }
+        const text = (await response.text()).trim();
+        if (!text) {
+            return {};
+        }
+        const dataUrl = text.startsWith("data:")
+            ? text
+            : `data:image/png;base64,${text}`;
+        return { image: dataUrl };
+    } catch (error) {
+        console.error("Failed to export diagram preview:", error);
+        return {};
+    }
+}
+
 export async function POST(req: Request) {
     try {
         const {
@@ -144,6 +187,7 @@ export async function POST(req: Request) {
                     });
 
                     const payload = extractJsonPayload(response.text);
+                    const preview = await exportDiagramPreview(payload.xml);
                     return {
                         id: resolved.id,
                         label: model.label ?? resolved.label,
@@ -151,6 +195,7 @@ export async function POST(req: Request) {
                         status: "ok" as const,
                         summary: payload.summary,
                         xml: payload.xml,
+                        previewImage: preview.image,
                     };
                 } catch (error) {
                     const message =

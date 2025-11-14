@@ -9,7 +9,6 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import Image from "next/image";
 import { useDiagram } from "@/contexts/diagram-context";
 
 interface HistoryDialogProps {
@@ -51,12 +50,11 @@ export function HistoryDialog({
                                 }}
                             >
                                 <div className="aspect-video bg-white rounded overflow-hidden flex items-center justify-center">
-                                    <Image
+                                    <img
                                         src={item.svg}
                                         alt={`图表版本 ${index + 1}`}
-                                        width={200}
-                                        height={100}
                                         className="object-contain w-full h-full p-1"
+                                        loading="lazy"
                                     />
                                 </div>
                                 <div className="text-xs text-center mt-1 text-gray-500">

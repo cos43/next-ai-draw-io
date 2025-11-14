@@ -3,6 +3,8 @@
 import React, { createContext, useContext, useRef, useState } from "react";
 import type { DrawIoEmbedRef } from "react-drawio";
 import { extractDiagramXML } from "../lib/utils";
+import { EMPTY_MXFILE } from "@/lib/diagram-templates";
+import { RuntimeErrorPayload } from "@/types/diagram";
 
 interface DiagramContextType {
     chartXML: string;
@@ -16,6 +18,9 @@ interface DiagramContextType {
     handleDiagramExport: (data: any) => void;
     clearDiagram: () => void;
     restoreDiagramAt: (index: number) => void;
+    fetchDiagramXml: () => Promise<string>;
+    runtimeError: RuntimeErrorPayload | null;
+    setRuntimeError: (error: RuntimeErrorPayload | null) => void;
 }
 
 const DiagramContext = createContext<DiagramContextType | undefined>(undefined);
@@ -29,6 +34,10 @@ export function DiagramProvider({ children }: { children: React.ReactNode }) {
     const [activeVersionIndex, setActiveVersionIndex] = useState<number>(-1);
     const drawioRef = useRef<DrawIoEmbedRef | null>(null);
     const resolverRef = useRef<((value: string) => void) | null>(null);
+    const exportTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [runtimeError, setRuntimeError] = useState<RuntimeErrorPayload | null>(
+        null
+    );
 
     const handleExport = () => {
         if (drawioRef.current) {
@@ -65,12 +74,15 @@ export function DiagramProvider({ children }: { children: React.ReactNode }) {
             resolverRef.current(extractedXML);
             resolverRef.current = null;
         }
+        if (exportTimeoutRef.current) {
+            clearTimeout(exportTimeoutRef.current);
+            exportTimeoutRef.current = null;
+        }
     };
 
     const clearDiagram = () => {
-        const emptyDiagram = `<mxfile><diagram name="Page-1" id="page-1"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/></root></mxGraphModel></diagram></mxfile>`;
-        loadDiagram(emptyDiagram);
-        setChartXML(emptyDiagram);
+        loadDiagram(EMPTY_MXFILE);
+        setChartXML(EMPTY_MXFILE);
         setLatestSvg("");
         setDiagramHistory([]);
         setActiveVersionIndex(-1);
@@ -87,6 +99,30 @@ export function DiagramProvider({ children }: { children: React.ReactNode }) {
         setActiveVersionIndex(index);
     };
 
+    const fetchDiagramXml = () => {
+        return new Promise<string>((resolve, reject) => {
+            if (!drawioRef.current) {
+                reject(new Error("DrawIO 尚未初始化，暂时无法导出画布。"));
+                return;
+            }
+            resolverRef.current = resolve;
+            handleExport();
+            if (exportTimeoutRef.current) {
+                clearTimeout(exportTimeoutRef.current);
+            }
+            exportTimeoutRef.current = setTimeout(() => {
+                if (resolverRef.current === resolve) {
+                    resolverRef.current = null;
+                    reject(
+                        new Error(
+                            "导出画布超时（10 秒无响应），请稍后重试。"
+                        )
+                    );
+                }
+            }, 10000);
+        });
+    };
+
     return (
         <DiagramContext.Provider
             value={{
@@ -101,6 +137,9 @@ export function DiagramProvider({ children }: { children: React.ReactNode }) {
                 handleDiagramExport,
                 clearDiagram,
                 restoreDiagramAt,
+                fetchDiagramXml,
+                runtimeError,
+                setRuntimeError,
             }}
         >
             {children}
