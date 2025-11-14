@@ -39,5 +39,19 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build and cache
+.next/
+out/
+
+# Claude AI
+.claude/
+
+# Deployment scripts
 push-via-ec2.sh
-.claude/settings.local.json
