@@ -46,6 +46,7 @@ import {
     GUARDRAIL_OPTIONS,
     INTENT_OPTIONS,
     TONE_OPTIONS,
+    DIAGRAM_TYPE_OPTIONS,
 } from "./flowpilot-brief";
 import { ReportBlueprintTray } from "./report-blueprint-tray";
 import { CalibrationConsole } from "./calibration-console";
@@ -154,6 +155,7 @@ export default function ChatPanelOptimized({
         intent: "draft",
         tone: "balanced",
         focus: ["swimlane"],
+        diagramTypes: ["sequence", "activity"],
         guardrails: ["singleViewport", "respectLabels"],
     });
     const [commandTab, setCommandTab] = useState<"starter" | "report">("starter");
@@ -191,6 +193,9 @@ export default function ChatPanelOptimized({
         const focusMeta = FOCUS_OPTIONS.filter((option) =>
             briefState.focus.includes(option.id)
         );
+        const diagramTypeMeta = DIAGRAM_TYPE_OPTIONS.filter((option) =>
+            briefState.diagramTypes.includes(option.id)
+        );
         const guardrailMeta = GUARDRAIL_OPTIONS.filter((option) =>
             briefState.guardrails.includes(option.id)
         );
@@ -211,6 +216,16 @@ export default function ChatPanelOptimized({
                 `重点：${focusMeta.map((item) => item.prompt).join("；")}`
             );
             focusMeta.forEach((item) => badges.push(`重点·${item.title}`));
+        }
+        if (diagramTypeMeta.length > 0) {
+            segments.push(
+                `图型：${diagramTypeMeta
+                    .map((item) => item.prompt)
+                    .join("；")}`
+            );
+            diagramTypeMeta.forEach((item) =>
+                badges.push(`图型·${item.title}`)
+            );
         }
         if (guardrailMeta.length > 0) {
             segments.push(

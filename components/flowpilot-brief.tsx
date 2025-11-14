@@ -9,6 +9,7 @@ import {
     Settings2,
     ShieldCheck,
     Sparkles,
+    Workflow,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,14 +22,24 @@ import {
 } from "@/components/ui/dialog";
 
 export type BriefIntentId = "draft" | "polish" | "explain";
-export type BriefToneId = "balanced" | "playful" | "enterprise";
+export type BriefToneId = "balanced" | "playful" | "enterprise" | "sketch";
 export type BriefFocusId = "swimlane" | "dataflow" | "story";
 export type BriefGuardrailId = "singleViewport" | "respectLabels" | "contrast";
+export type BriefDiagramTypeId =
+    | "sequence"
+    | "activity"
+    | "component"
+    | "state"
+    | "deployment"
+    | "mindmap"
+    | "journey"
+    | "gantt";
 
 export type FlowPilotBriefState = {
     intent: BriefIntentId;
     tone: BriefToneId;
     focus: BriefFocusId[];
+    diagramTypes: BriefDiagramTypeId[];
     guardrails: BriefGuardrailId[];
 };
 
@@ -83,6 +94,12 @@ export const TONE_OPTIONS: Option<BriefToneId>[] = [
         description: "干净、适合幻灯片",
         prompt: "控制元素数量，偏右上角留白，适合直接投影展示。",
     },
+    {
+        id: "sketch",
+        title: "草稿手绘",
+        description: "draw.io 草稿风格",
+        prompt: "切换到 draw.io 草稿主题，使用粗描边、淡手绘色块与手写字体风格，强调草稿临摹感。",
+    },
 ];
 
 export const FOCUS_OPTIONS: Option<BriefFocusId>[] = [
@@ -103,6 +120,57 @@ export const FOCUS_OPTIONS: Option<BriefFocusId>[] = [
         title: "叙事节奏",
         description: "突出开始与高潮",
         prompt: "增加阶段标题与关键节点标记，让流程更故事化。",
+    },
+];
+
+export const DIAGRAM_TYPE_OPTIONS: Option<BriefDiagramTypeId>[] = [
+    {
+        id: "sequence",
+        title: "系统时序",
+        description: "PlantUML 时序/交互",
+        prompt: "将主要服务/角色转化为时序生命线，突出请求-响应链路与异步回调。",
+    },
+    {
+        id: "activity",
+        title: "业务活动",
+        description: "流程/分支逻辑",
+        prompt: "以 Activity Diagram 表达条件分支与并行汇合，标注每个动作的入口出口条件。",
+    },
+    {
+        id: "component",
+        title: "组件依赖",
+        description: "子系统与接口",
+        prompt: "使用组件图视角，强调子系统、接口契约与部署边界，标出关键依赖方向。",
+    },
+    {
+        id: "state",
+        title: "状态机",
+        description: "对象生命周期",
+        prompt: "绘制状态机，展示核心对象的状态迁移、守卫条件，以及循环或终止状态。",
+    },
+    {
+        id: "deployment",
+        title: "部署拓扑",
+        description: "节点/网络",
+        prompt: "输出部署图，列出环境节点、容器/服务实例及网络关系，标记安全域与端口。",
+    },
+    {
+        id: "mindmap",
+        title: "思维导图",
+        description: "发散结构",
+        prompt: "用思维导图方式整理主题、分支与子要点，保持手绘草稿质感。",
+    },
+    {
+        id: "journey",
+        title: "体验旅程",
+        description: "阶段/感受",
+        prompt: "以客户旅程视角展示阶段、触点、情绪曲线与责任团队。",
+    },
+    {
+        id: "gantt",
+        title: "甘特排程",
+        description: "计划/依赖",
+        prompt: "绘制简化甘特图，包含里程碑、持续时长与依赖关系，适合快速排程讨论。",
     },
 ];
 
@@ -155,6 +223,14 @@ export function FlowPilotBrief({
             ? state.guardrails.filter((id) => id !== guardrailId)
             : [...state.guardrails, guardrailId];
         onChange({ guardrails: next });
+    };
+
+    const handleDiagramTypeToggle = (diagramTypeId: BriefDiagramTypeId) => {
+        const exists = state.diagramTypes.includes(diagramTypeId);
+        const next = exists
+            ? state.diagramTypes.filter((id) => id !== diagramTypeId)
+            : [...state.diagramTypes, diagramTypeId];
+        onChange({ diagramTypes: next });
     };
 
     return (
@@ -255,6 +331,39 @@ export function FlowPilotBrief({
                                         : "border-slate-200 bg-white hover:border-slate-400"
                                 )}
                                 onClick={() => handleFocusToggle(option.id)}
+                            >
+                                <p className="text-sm font-semibold text-slate-900">
+                                    {option.title}
+                                </p>
+                                <p className="text-xs text-slate-500 mt-0.5">
+                                    {option.description}
+                                </p>
+                            </button>
+                        );
+                    })}
+                </div>
+            </section>
+
+            <section className="mb-4">
+                <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <Workflow className="h-4 w-4" />
+                    图表类型
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                    {DIAGRAM_TYPE_OPTIONS.map((option) => {
+                        const isActive = state.diagramTypes.includes(option.id);
+                        return (
+                            <button
+                                key={option.id}
+                                type="button"
+                                disabled={disabled}
+                                className={cn(
+                                    "rounded-xl border px-3 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:opacity-60",
+                                    isActive
+                                        ? "border-indigo-500 bg-indigo-50"
+                                        : "border-slate-200 bg-white hover:border-slate-400"
+                                )}
+                                onClick={() => handleDiagramTypeToggle(option.id)}
                             >
                                 <p className="text-sm font-semibold text-slate-900">
                                     {option.title}

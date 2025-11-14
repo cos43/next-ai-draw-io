@@ -78,4 +78,44 @@ export const QUICK_ACTIONS: QuickActionDefinition[] = [
             "请阅读当前图表 XML，为产品经理总结其结构，并给出一条影响最大的改进建议，暂不修改图表。",
         badge: "洞察",
     },
+    {
+        id: "sequence-handoff",
+        title: "核心服务时序",
+        description: "生成跨服务请求-响应链路。",
+        prompt:
+            "以 PlantUML 时序图风格重现“用户下单→风控→库存→支付→通知”链路，为每个角色添加生命线与异步回调标记，突出超时/重试分支。",
+        badge: "时序",
+    },
+    {
+        id: "activity-risk",
+        title: "风控活动流",
+        description: "展示策略引擎的分支逻辑。",
+        prompt:
+            "请绘制一个包含“信号采集→打分→决策→处置”主干，并包含人工复核与自动放行支线的 Activity Diagram，标注入口/出口条件。",
+        badge: "活动",
+    },
+    {
+        id: "component-contract",
+        title: "组件依赖矩阵",
+        description: "理清子系统与 API 契约。",
+        prompt:
+            "请输出组件图，包含网关、身份、订单、库存、计费、通知六个组件，标出同步/异步调用方向并注明协议（REST、gRPC、MQ）。",
+        badge: "组件",
+    },
+    {
+        id: "deployment-layers",
+        title: "多环境部署拓扑",
+        description: "展示区域/可用区/服务实例。",
+        prompt:
+            "用部署图描述“用户 > 边缘 CDN > 入口网关 > 应用层 > 数据层”的拓扑，区分生产/预发，并标注安全域与端口策略。",
+        badge: "部署",
+    },
+    {
+        id: "mindmap-workshop",
+        title: "工作坊思维导图",
+        description: "快速整理灵感簇。",
+        prompt:
+            "请生成一张以“AI 增长策略”为中心的思维导图，分支包括获客、活跃、留存、变现、组织，二级节点写出具体举措并保持草稿质感。",
+        badge: "灵感",
+    },
 ];
