@@ -1,9 +1,13 @@
 import { generateText } from "ai";
 import { resolveChatModel } from "@/lib/server-models";
+import type { RuntimeModelConfig } from "@/types/model-config";
 
 interface ComparisonModelInput {
     id: string;
     label?: string;
+    provider?: string;
+    slot?: "A" | "B";
+    runtime?: RuntimeModelConfig;
 }
 
 interface AttachmentInput {
@@ -143,7 +147,14 @@ export async function POST(req: Request) {
             )
             .filter(
                 (item): item is ComparisonModelInput =>
-                    Boolean(item?.id && item.id.trim().length > 0)
+                    Boolean(
+                        item?.id &&
+                            item.id.trim().length > 0 &&
+                            item?.runtime &&
+                            typeof item.runtime.baseUrl === "string" &&
+                            typeof item.runtime.apiKey === "string" &&
+                            typeof item.runtime.modelId === "string"
+                    )
             );
 
         if (normalizedModels.length === 0) {
@@ -170,7 +181,7 @@ export async function POST(req: Request) {
         const results = await Promise.all(
             normalizedModels.map(async (model) => {
                 try {
-                    const resolved = resolveChatModel(model.id);
+                    const resolved = resolveChatModel(model.runtime);
                     const response = await generateText({
                         model: resolved.model,
                         system: comparisonSystemPrompt,

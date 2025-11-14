@@ -15,6 +15,7 @@ import {
     ComparisonCardResult,
 } from "@/types/comparison";
 import { cn, decodeDiagramXml } from "@/lib/utils";
+import { svgToDataUrl } from "@/lib/svg";
 import { useMemo } from "react";
 
 interface ComparisonReviewModalProps {
@@ -70,7 +71,8 @@ function PreviewPanel({
         buildPreviewUrl
             ? buildPreviewUrl(rawXmlForPreview)
             : null;
-    const hasPreviewSvg = Boolean(result.previewSvg?.trim());
+    const previewSvgSrc = svgToDataUrl(result.previewSvg);
+    const hasPreviewSvg = Boolean(previewSvgSrc);
     const hasPreviewImage = Boolean(result.previewImage?.trim());
     const normalizedXml = useMemo(() => {
         if (result.xml?.trim()) {
@@ -181,7 +183,7 @@ function PreviewPanel({
             </div>
 
             <div className="flex-1 rounded-[28px] border border-dashed border-slate-200 bg-slate-50/70 p-1.5">
-                <div className="relative flex h-[200px] w-full items-center justify-center overflow-hidden rounded-[24px] bg-white shadow-inner">
+                <div className="relative flex h-[200px] w-full justify-center overflow-hidden rounded-[24px] bg-white shadow-inner">
                     <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-between px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
                         <span>{entry.prompt ? "预览快照" : "生成快照"}</span>
                         {isActivePreview && (
@@ -190,17 +192,16 @@ function PreviewPanel({
                     </div>
                     {result.status === "ok" ? (
                         hasPreviewSvg ? (
-                            <div
-                                className="flex h-full w-full items-center justify-center [&>svg]:h-full [&>svg]:w-full [&>svg]:object-contain"
-                                dangerouslySetInnerHTML={{
-                                    __html: result.previewSvg ?? "",
-                                }}
+                            <img
+                                src={previewSvgSrc ?? ""}
+                                alt={`comparison-preview-svg-${result.id}`}
+                                className="block h-full w-full object-cover"
                             />
                         ) : hasPreviewImage ? (
                             <img
                                 src={result.previewImage}
                                 alt={`comparison-preview-${result.id}`}
-                                className="block h-full w-full object-contain"
+                                className="block h-full w-full object-cover"
                             />
                         ) : previewUrl ? (
                             <iframe
@@ -211,12 +212,12 @@ function PreviewPanel({
                                 allowFullScreen
                             />
                         ) : (
-                            <div className="flex h-full items-center justify-center text-xs text-slate-400">
+                            <div className="flex h-full w-full items-center justify-center text-xs text-slate-400">
                                 暂无预览
                             </div>
                         )
                     ) : (
-                        <div className="flex h-full items-center justify-center text-xs text-slate-400">
+                        <div className="flex h-full w-full items-center justify-center text-xs text-slate-400">
                             {result.status === "loading"
                                 ? "正在生成预览…"
                                 : result.error ?? "无法生成预览"}

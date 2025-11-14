@@ -1,267 +1,230 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { ChevronDown, Plus, Check, Trash2 } from "lucide-react";
+import React, {
+    useMemo,
+    useRef,
+    useState,
+    useEffect,
+    useCallback,
+} from "react";
+import { createPortal } from "react-dom";
+import { ChevronDown, Check, Database } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import type { RuntimeModelOption } from "@/types/model-config";
 
 interface ModelSelectorProps {
-    selectedModelId: string;
-    onModelChange: (modelId: string) => void;
+    selectedModelKey?: string;
+    onModelChange: (modelKey: string) => void;
+    models: RuntimeModelOption[];
+    onManage?: () => void;
     disabled?: boolean;
 }
 
-interface SavedModel {
-    id: string;
-    label?: string;
-    lastUsed: number;
+interface GroupedModelOptions {
+    endpointId: string;
+    endpointName: string;
+    providerHint: string;
+    items: RuntimeModelOption[];
 }
 
-const STORAGE_KEY = "flowpilot-custom-models";
-
-const DEFAULT_MODELS = [
-    { id: "app-dbcwt0-1750310518239209222", label: "FlowPilot · 默认模型" },
-];
-
 export function ModelSelector({
-    selectedModelId,
+    selectedModelKey,
     onModelChange,
+    models,
+    onManage,
     disabled = false,
 }: ModelSelectorProps) {
     const [isOpen, setIsOpen] = useState(false);
-    const [customInput, setCustomInput] = useState("");
-    const [savedModels, setSavedModels] = useState<SavedModel[]>([]);
-    const [showCustomInput, setShowCustomInput] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const triggerRef = useRef<HTMLButtonElement>(null);
+    const [isMounted, setIsMounted] = useState(false);
+    const [menuPosition, setMenuPosition] = useState<{
+        top: number;
+        left: number;
+        width: number;
+    } | null>(null);
 
-    // 加载保存的模型
     useEffect(() => {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-            try {
-                setSavedModels(JSON.parse(saved));
-            } catch (e) {
-                console.error("Failed to parse saved models:", e);
-            }
-        }
+        setIsMounted(true);
     }, []);
 
-    // 点击外部关闭下拉菜单
+    const updateMenuPosition = useCallback(() => {
+        if (!triggerRef.current) return;
+        const rect = triggerRef.current.getBoundingClientRect();
+        setMenuPosition({
+            top: rect.top + window.scrollY,
+            left: rect.left + window.scrollX,
+            width: rect.width,
+        });
+    }, []);
+
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-                setShowCustomInput(false);
-                setCustomInput("");
+            const target = event.target as Node;
+            if (
+                triggerRef.current?.contains(target) ||
+                dropdownRef.current?.contains(target)
+            ) {
+                return;
             }
+            setIsOpen(false);
         }
 
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    // 保存模型到本地存储
-    const saveModel = (modelId: string, label?: string) => {
-        const newModel: SavedModel = {
-            id: modelId,
-            label,
-            lastUsed: Date.now(),
+    useEffect(() => {
+        if (!isOpen) return;
+        updateMenuPosition();
+        const handleWindowChange = () => updateMenuPosition();
+        window.addEventListener("resize", handleWindowChange);
+        window.addEventListener("scroll", handleWindowChange, true);
+        return () => {
+            window.removeEventListener("resize", handleWindowChange);
+            window.removeEventListener("scroll", handleWindowChange, true);
         };
+    }, [isOpen, updateMenuPosition]);
 
-        const updated = [
-            newModel,
-            ...savedModels.filter(m => m.id !== modelId)
-        ].slice(0, 10); // 最多保存10个
+    const groupedModels = useMemo<GroupedModelOptions[]>(() => {
+        const map = new Map<string, GroupedModelOptions>();
+        models.forEach((model) => {
+            if (!map.has(model.endpointId)) {
+                map.set(model.endpointId, {
+                    endpointId: model.endpointId,
+                    endpointName: model.endpointName,
+                    providerHint: model.providerHint,
+                    items: [],
+                });
+            }
+            map.get(model.endpointId)?.items.push(model);
+        });
+        return Array.from(map.values());
+    }, [models]);
 
-        setSavedModels(updated);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    };
+    const selectedModel = useMemo(
+        () => models.find((model) => model.key === selectedModelKey),
+        [models, selectedModelKey]
+    );
 
-    // 删除保存的模型
-    const deleteSavedModel = (modelId: string, e: React.MouseEvent) => {
-        e.stopPropagation();
-        const updated = savedModels.filter(m => m.id !== modelId);
-        setSavedModels(updated);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    };
-
-    // 选择模型
-    const selectModel = (modelId: string, label?: string) => {
-        onModelChange(modelId);
-        
-        // 如果不是默认模型，保存到自定义模型列表
-        if (!DEFAULT_MODELS.find(m => m.id === modelId)) {
-            saveModel(modelId, label);
-        }
-        
+    const handleSelect = (modelKey: string) => {
+        onModelChange(modelKey);
         setIsOpen(false);
-        setShowCustomInput(false);
-        setCustomInput("");
     };
 
-    // 添加自定义模型
-    const addCustomModel = () => {
-        if (customInput.trim()) {
-            selectModel(customInput.trim());
-        }
-    };
-
-    // 获取当前选中模型的显示名称
-    const getSelectedModelLabel = () => {
-        const defaultModel = DEFAULT_MODELS.find(m => m.id === selectedModelId);
-        if (defaultModel) return defaultModel.label;
-        
-        const savedModel = savedModels.find(m => m.id === selectedModelId);
-        if (savedModel?.label) return savedModel.label;
-        
-        return selectedModelId;
-    };
-
-    // 合并所有可用模型
-    const allModels = [
-        ...DEFAULT_MODELS,
-        ...savedModels
-            .filter(saved => !DEFAULT_MODELS.find(def => def.id === saved.id))
-            .sort((a, b) => b.lastUsed - a.lastUsed)
-    ];
+    const buttonLabel = selectedModel
+        ? `${selectedModel.label || selectedModel.modelId}`
+        : "配置模型";
 
     return (
-        <div className="relative" ref={dropdownRef}>
+        <div className="relative">
             <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={() => setIsOpen((prev) => !prev)}
                 disabled={disabled}
+                ref={triggerRef}
                 className={cn(
-                    "h-8 px-3 justify-between font-normal text-xs",
-                    "border-gray-200 hover:border-gray-300"
+                    "h-8 min-w-[160px] justify-between rounded-full border-slate-200 px-3 text-xs font-medium text-slate-700 hover:border-slate-300",
+                    !selectedModel && "text-slate-400"
                 )}
             >
-                <span className="truncate max-w-[120px]">
-                    {getSelectedModelLabel()}
+                <span className="flex items-center gap-2 truncate">
+                    {!selectedModel && <Database className="h-3.5 w-3.5" />}
+                    <span className="truncate max-w-[120px]">{buttonLabel}</span>
                 </span>
-                <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
+                <ChevronDown className="ml-1 h-3 w-3 shrink-0" />
             </Button>
 
-            {isOpen && (
-                <div className="absolute bottom-full left-0 mb-2 w-64 bg-white border border-gray-200 rounded-md shadow-lg z-50">
-                    <div className="py-1 max-h-80 overflow-y-auto">
-                        {/* 默认模型 */}
-                        <div className="px-3 py-2 text-[11px] font-semibold text-gray-500 uppercase tracking-wide border-b">
-                            预设模型
-                        </div>
-                        {DEFAULT_MODELS.map((model) => (
-                            <button
-                                key={model.id}
-                                type="button"
-                                onClick={() => selectModel(model.id, model.label)}
-                                className={cn(
-                                    "w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center justify-between",
-                                    selectedModelId === model.id && "bg-blue-50 text-blue-600"
-                                )}
-                            >
-                                <span className="truncate">{model.label}</span>
-                                {selectedModelId === model.id && <Check className="h-4 w-4 shrink-0" />}
-                            </button>
-                        ))}
-
-                        {/* 自定义模型 */}
-                        {savedModels.length > 0 && (
-                            <>
-                                <div className="px-3 py-2 text-[11px] font-semibold text-gray-500 uppercase tracking-wide border-b border-t">
-                                    自定义模型
-                                </div>
-                                {savedModels
-                                    .filter(saved => !DEFAULT_MODELS.find(def => def.id === saved.id))
-                                    .map((model) => (
-                                        <div
-                                            key={model.id}
-                                            className={cn(
-                                                "w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center justify-between group cursor-pointer",
-                                                selectedModelId === model.id && "bg-blue-50 text-blue-600"
-                                            )}
-                                        >
-                                            <div 
-                                                className="truncate flex-1 mr-2"
-                                                onClick={() => selectModel(model.id, model.label)}
-                                            >
-                                                <div className="truncate">{model.label || model.id}</div>
-                                                {model.label && (
-                                                    <div className="text-xs text-gray-500 truncate">{model.id}</div>
-                                                )}
-                                            </div>
-                                            <div className="flex items-center gap-1 shrink-0">
-                                                {selectedModelId === model.id && <Check className="h-4 w-4" />}
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => deleteSavedModel(model.id, e)}
-                                                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded text-red-600"
-                                                >
-                                                    <Trash2 className="h-3 w-3" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                            </>
-                        )}
-
-                        {/* 添加自定义模型 */}
-                        <div className="border-t">
-                            {showCustomInput ? (
-                                <div className="p-3 space-y-2">
-                                    <input
-                                        type="text"
-                                        placeholder="输入模型 ID (如: gpt-4, claude-3)"
-                                        value={customInput}
-                                        onChange={(e) => setCustomInput(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === "Enter") {
-                                                e.preventDefault();
-                                                addCustomModel();
-                                            } else if (e.key === "Escape") {
-                                                setShowCustomInput(false);
-                                                setCustomInput("");
-                                            }
+            {isMounted &&
+                isOpen &&
+                menuPosition &&
+                createPortal(
+                    <div
+                        ref={dropdownRef}
+                        className="z-[1000]"
+                        style={{
+                            position: "absolute",
+                            top: menuPosition.top,
+                            left: menuPosition.left,
+                            width: Math.max(menuPosition.width, 280),
+                            transform: "translateY(calc(-100% - 8px))",
+                        }}
+                    >
+                        <div className="w-full rounded-2xl border border-slate-100 bg-white/95 shadow-xl">
+                            {models.length === 0 ? (
+                                <div className="p-4 text-sm text-slate-500">
+                                    暂无可用模型，请先完成接口配置。
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="mt-3 w-full rounded-full border-dashed"
+                                        onClick={() => {
+                                            setIsOpen(false);
+                                            onManage?.();
                                         }}
-                                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                        autoFocus
-                                    />
-                                    <div className="flex gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={addCustomModel}
-                                            disabled={!customInput.trim()}
-                                            className="flex-1 px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-                                        >
-                                            添加
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setShowCustomInput(false);
-                                                setCustomInput("");
-                                            }}
-                                            className="px-3 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50"
-                                        >
-                                            取消
-                                        </button>
-                                    </div>
+                                    >
+                                        去配置模型
+                                    </Button>
                                 </div>
                             ) : (
-                                <button
-                                    type="button"
-                                    onClick={() => setShowCustomInput(true)}
-                                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 text-blue-600"
-                                >
-                                    <Plus className="h-4 w-4" />
-                                    添加自定义模型
-                                </button>
+                                <div className="max-h-80 overflow-y-auto py-2">
+                                    {groupedModels.map((group) => (
+                                        <div key={group.endpointId} className="py-1">
+                                            <div className="px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                                                {group.endpointName}
+                                                <span className="ml-1 text-[10px] uppercase text-slate-300">
+                                                    {group.providerHint}
+                                                </span>
+                                            </div>
+                                            {group.items.map((model) => (
+                                                <button
+                                                    key={model.key}
+                                                    type="button"
+                                                    onClick={() => handleSelect(model.key)}
+                                                    className={cn(
+                                                        "flex w-full flex-col items-start gap-0.5 px-4 py-2 text-left text-sm transition hover:bg-slate-50",
+                                                        selectedModelKey === model.key &&
+                                                            "bg-slate-900/5"
+                                                    )}
+                                                >
+                                                    <div className="flex w-full items-center justify-between">
+                                                        <span className="font-medium text-slate-900">
+                                                            {model.label || model.modelId}
+                                                        </span>
+                                                        {selectedModelKey === model.key && (
+                                                            <Check className="h-4 w-4 text-slate-900" />
+                                                        )}
+                                                    </div>
+                                                    <div className="text-xs font-mono text-slate-400">
+                                                        {model.modelId}
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    ))}
+                                </div>
                             )}
+                            <div className="border-t border-slate-100 p-2">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    className="w-full rounded-full text-xs font-semibold text-slate-500 hover:text-slate-900"
+                                    onClick={() => {
+                                        setIsOpen(false);
+                                        onManage?.();
+                                    }}
+                                >
+                                    管理模型
+                                </Button>
+                            </div>
                         </div>
-                    </div>
-                </div>
-            )}
+                    </div>,
+                    document.body
+                )}
         </div>
     );
 }

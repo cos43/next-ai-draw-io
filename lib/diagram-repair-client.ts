@@ -1,10 +1,12 @@
+import type { RuntimeModelConfig } from "@/types/model-config";
+
 export type DiagramRepairStrategy = "display" | "edit";
 
 export interface DiagramRepairRequest {
     invalidXml: string;
     currentXml?: string;
     errorContext?: string;
-    modelId?: string;
+    modelRuntime?: RuntimeModelConfig;
 }
 
 export interface DiagramRepairResponse {
@@ -26,7 +28,7 @@ export async function requestDiagramRepair(
             invalidXml: payload.invalidXml,
             currentXml: payload.currentXml,
             errorContext: payload.errorContext,
-            modelOverride: payload.modelId,
+            modelRuntime: payload.modelRuntime,
         }),
     });
 

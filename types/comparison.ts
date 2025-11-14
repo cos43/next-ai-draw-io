@@ -1,4 +1,5 @@
 // Comparison related shared types
+import type { RuntimeModelConfig } from "@/types/model-config";
 
 export type ComparisonResultStatus = "loading" | "ok" | "error";
 
@@ -8,10 +9,12 @@ export interface ComparisonModelConfig {
 }
 
 export interface ComparisonModelMeta {
+    key: string;
     id: string;
     label: string;
     provider: string;
     slot: "A" | "B";
+    runtime: RuntimeModelConfig;
 }
 
 export interface ComparisonCardResult {
@@ -21,6 +24,7 @@ export interface ComparisonCardResult {
     provider: string;
     slot: "A" | "B";
     status: ComparisonResultStatus;
+    runtime?: RuntimeModelConfig;
     summary?: string;
     xml?: string;
     encodedXml?: string;
@@ -38,4 +42,6 @@ export interface ComparisonHistoryEntry {
     models: ComparisonModelMeta[];
     status: "loading" | "ready";
     results: ComparisonCardResult[];
+    anchorMessageId?: string | null;
+    adoptedResultId?: string | null;
 }

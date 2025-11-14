@@ -7,7 +7,14 @@ export const maxDuration = 60
 
 export async function POST(req: Request) {
   try {
-    const { messages, xml, modelOverride } = await req.json();
+    const { messages, xml, modelRuntime } = await req.json();
+
+    if (!modelRuntime) {
+      return Response.json(
+        { error: "Missing model runtime configuration." },
+        { status: 400 }
+      );
+    }
 
     const systemMessage = `
 You are an expert diagram creation assistant specializing in draw.io XML generation.
@@ -115,8 +122,13 @@ ${lastMessageText}
       }
     }
 
-    const resolvedModel = resolveChatModel(modelOverride);
+    const resolvedModel = resolveChatModel(modelRuntime);
     console.log("Enhanced messages:", enhancedMessages, "model:", resolvedModel.id);
+    console.log("Model runtime config:", {
+        baseUrl: modelRuntime.baseUrl,
+        modelId: modelRuntime.modelId,
+        hasApiKey: !!modelRuntime.apiKey,
+    });
 
     const result = streamText({
       // model: google("gemini-2.5-flash-preview-05-20"),
@@ -176,6 +188,8 @@ IMPORTANT: Keep edits concise:
 
     // Error handler function to provide detailed error messages
     function errorHandler(error: unknown) {
+      console.error('Stream error:', error);
+      
       if (error == null) {
         return 'unknown error';
       }
@@ -185,7 +199,18 @@ IMPORTANT: Keep edits concise:
       }
 
       if (error instanceof Error) {
-        return error.message;
+        // 检查是否是网络错误或 API 错误
+        const errorMessage = error.message;
+        if (errorMessage.includes('404') || errorMessage.includes('Not Found')) {
+          return `API 接口未找到。请检查 Base URL 配置是否正确。当前配置: ${modelRuntime?.baseUrl || '未知'}`;
+        }
+        if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+          return 'API Key 无效或已过期，请检查配置。';
+        }
+        if (errorMessage.includes('403') || errorMessage.includes('Forbidden')) {
+          return 'API Key 权限不足，请检查配置。';
+        }
+        return errorMessage;
       }
 
       return JSON.stringify(error);
@@ -196,8 +221,17 @@ IMPORTANT: Keep edits concise:
     });
   } catch (error) {
     console.error('Error in chat route:', error);
+    // 提供更详细的错误信息
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorDetails = error instanceof Error ? error.stack : undefined;
+    console.error('Error details:', { errorMessage, errorDetails });
+    
     return Response.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error',
+        message: errorMessage,
+        ...(process.env.NODE_ENV === 'development' && { details: errorDetails })
+      },
       { status: 500 }
     );
   }

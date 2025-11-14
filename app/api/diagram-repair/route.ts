@@ -92,12 +92,12 @@ export async function POST(req: Request) {
             invalidXml,
             currentXml,
             errorContext,
-            modelOverride,
+            modelRuntime,
         }: {
             invalidXml: string;
             currentXml?: string;
             errorContext?: string;
-            modelOverride?: string;
+            modelRuntime?: any;
         } = await req.json();
 
         if (!invalidXml || invalidXml.trim().length === 0) {
@@ -106,8 +106,14 @@ export async function POST(req: Request) {
                 { status: 400 }
             );
         }
+        if (!modelRuntime) {
+            return Response.json(
+                { error: "缺少模型配置，无法执行自动修复。" },
+                { status: 400 }
+            );
+        }
 
-        const resolved = resolveChatModel(modelOverride);
+        const resolved = resolveChatModel(modelRuntime);
         const userPrompt = buildUserPrompt({ invalidXml, currentXml, errorContext });
         const response = await generateText({
             model: resolved.model,

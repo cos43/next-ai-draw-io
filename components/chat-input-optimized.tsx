@@ -19,6 +19,7 @@ import { useDiagram } from "@/contexts/diagram-context";
 import { HistoryDialog } from "@/components/history-dialog";
 import { ModelSelector } from "@/components/model-selector";
 import { cn } from "@/lib/utils";
+import type { RuntimeModelOption } from "@/types/model-config";
 
 interface ChatInputOptimizedProps {
     input: string;
@@ -31,8 +32,10 @@ interface ChatInputOptimizedProps {
     showHistory?: boolean;
     onToggleHistory?: (show: boolean) => void;
     isCompactMode?: boolean;
-    selectedModelId?: string;
-    onModelChange?: (modelId: string) => void;
+    selectedModelKey?: string;
+    modelOptions?: RuntimeModelOption[];
+    onModelChange?: (modelKey: string) => void;
+    onManageModels?: () => void;
     onCompareRequest?: () => void;
     onOpenComparisonConfig?: () => void;
     isCompareLoading?: boolean;
@@ -50,8 +53,10 @@ export function ChatInputOptimized({
     showHistory = false,
     onToggleHistory = () => {},
     isCompactMode = false,
-    selectedModelId = "app-dbcwt0-1750310518239209222",
+    selectedModelKey,
+    modelOptions = [],
     onModelChange = () => {},
+    onManageModels,
     onCompareRequest = () => {},
     onOpenComparisonConfig = () => {},
     isCompareLoading = false,
@@ -286,11 +291,13 @@ export function ChatInputOptimized({
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
-                        <ModelSelector
-                            selectedModelId={selectedModelId}
-                            onModelChange={onModelChange}
-                            disabled={status === "streaming" || interactionLocked}
-                        />
+                            <ModelSelector
+                                selectedModelKey={selectedModelKey}
+                                onModelChange={onModelChange}
+                                models={modelOptions}
+                                onManage={onManageModels}
+                                disabled={status === "streaming" || interactionLocked}
+                            />
                         <Button
                             type="button"
                             variant="outline"

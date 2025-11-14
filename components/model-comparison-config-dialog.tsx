@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { ModelSelector } from "@/components/model-selector";
 import { cn } from "@/lib/utils";
 import { ArrowUpDown, RefreshCcw, Sparkles } from "lucide-react";
+import type { RuntimeModelOption } from "@/types/model-config";
 
 export interface ComparisonModelConfig {
     primary: string;
@@ -22,7 +23,9 @@ interface ModelComparisonConfigDialogProps {
     onOpenChange: (next: boolean) => void;
     config: ComparisonModelConfig;
     onConfigChange: (next: ComparisonModelConfig) => void;
-    defaultPrimaryId: string;
+    defaultPrimaryKey?: string;
+    models: RuntimeModelOption[];
+    onManageModels?: () => void;
 }
 
 export function ModelComparisonConfigDialog({
@@ -30,19 +33,26 @@ export function ModelComparisonConfigDialog({
     onOpenChange,
     config,
     onConfigChange,
-    defaultPrimaryId,
+    defaultPrimaryKey,
+    models,
+    onManageModels,
 }: ModelComparisonConfigDialogProps) {
+    const lookupModel = (key?: string) =>
+        models.find((model) => model.key === key);
+
     const handleSyncPrimary = () => {
+        if (!defaultPrimaryKey) return;
         onConfigChange({
-            primary: defaultPrimaryId,
+            primary: defaultPrimaryKey,
             secondary: config.secondary,
         });
     };
 
     const handleSyncBoth = () => {
+        if (!defaultPrimaryKey) return;
         onConfigChange({
-            primary: defaultPrimaryId,
-            secondary: defaultPrimaryId,
+            primary: defaultPrimaryKey,
+            secondary: defaultPrimaryKey,
         });
     };
 
@@ -62,18 +72,19 @@ export function ModelComparisonConfigDialog({
                         配置对比模型
                     </DialogTitle>
                     <DialogDescription className="text-sm text-slate-500">
-                        选择两个 WANQING 模型（或相同模型的不同版本）。FlowPilot 会将同一条提示词同步发送给双方，用于对比风格和布局差异。
+                        选择任意两个已配置的模型（也可以是同一个模型的不同版本）。FlowPilot 会将同一条提示词同步发送给双方，用于对比风格和布局差异。
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-4">
                     <div className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 py-2">
                         <div className="text-xs text-slate-500">
-                            当前对话模型 ID：
+                            当前对话模型：
                             <span className="ml-1 font-mono text-slate-700">
-                                {defaultPrimaryId}
+                                {lookupModel(defaultPrimaryKey)?.label ??
+                                    "未选择"}
                             </span>
-                        </div>
+                    </div>
                         <div className="flex items-center gap-2">
                             <Button
                                 type="button"
@@ -81,6 +92,7 @@ export function ModelComparisonConfigDialog({
                                 size="sm"
                                 className="h-8 rounded-full px-3 text-xs font-semibold text-slate-500 hover:text-slate-800"
                                 onClick={handleSyncPrimary}
+                                disabled={!defaultPrimaryKey}
                             >
                                 <RefreshCcw className="mr-1.5 h-3.5 w-3.5" />
                                 同步模型 A
@@ -91,6 +103,7 @@ export function ModelComparisonConfigDialog({
                                 size="sm"
                                 className="h-8 rounded-full px-3 text-xs font-semibold text-slate-500 hover:text-slate-800"
                                 onClick={handleSyncBoth}
+                                disabled={!defaultPrimaryKey}
                             >
                                 <Sparkles className="mr-1.5 h-3.5 w-3.5" />
                                 双方同步
@@ -121,13 +134,15 @@ export function ModelComparisonConfigDialog({
                         </div>
                         <div className="mt-3">
                             <ModelSelector
-                                selectedModelId={config.primary}
+                                selectedModelKey={config.primary}
                                 onModelChange={(id) =>
                                     onConfigChange({
                                         primary: id,
                                         secondary: config.secondary,
                                     })
                                 }
+                                models={models}
+                                onManage={onManageModels}
                             />
                         </div>
                     </div>
@@ -146,13 +161,15 @@ export function ModelComparisonConfigDialog({
                         </p>
                         <div className="mt-3">
                             <ModelSelector
-                                selectedModelId={config.secondary}
+                                selectedModelKey={config.secondary}
                                 onModelChange={(id) =>
                                     onConfigChange({
                                         primary: config.primary,
                                         secondary: id,
                                     })
                                 }
+                                models={models}
+                                onManage={onManageModels}
                             />
                         </div>
                         {config.secondary === config.primary ? (
@@ -181,4 +198,3 @@ export function ModelComparisonConfigDialog({
         </Dialog>
     );
 }
-

@@ -186,20 +186,32 @@ export function ConversationProvider({
             const newId = createBranchId();
             pendingBranchRef.current = null;
 
+            // 边界检查：确保 source branch 存在
+            const parent = branches[sourceId];
+            if (!parent) {
+                console.error(`无法创建分支：父分支 ${sourceId} 不存在`);
+                return null;
+            }
+
+            // 边界检查：验证 seedMessages 数组
+            const seedMessages =
+                input?.seedMessages && Array.isArray(input.seedMessages) && input.seedMessages.length > 0
+                    ? cloneMessages(input.seedMessages)
+                    : null;
+
+            // 边界检查：验证 meta 对象
+            const meta = input?.meta ?? { type: "manual" };
+            if (!meta.type) {
+                meta.type = "manual";
+            }
+
             setBranches((prev) => {
-                const parent = prev[sourceId];
-                if (!parent) {
-                    return prev;
-                }
-                const seedMessages =
-                    input?.seedMessages && input.seedMessages.length > 0
-                        ? cloneMessages(input.seedMessages)
-                        : null;
                 const branchMessages = seedMessages
                     ? seedMessages
                     : inheritMessages
                       ? [...parent.messages]
                       : [];
+                      
                 const branch: ConversationBranch = {
                     id: newId,
                     parentId: sourceId,
@@ -213,7 +225,7 @@ export function ConversationProvider({
                         input?.diagramXml !== undefined
                             ? input.diagramXml
                             : parent.diagramXml ?? null,
-                    meta: input?.meta ?? { type: "manual" },
+                    meta,
                 };
                 pendingBranchRef.current = branch;
                 return {
@@ -228,7 +240,7 @@ export function ConversationProvider({
 
             return pendingBranchRef.current;
         },
-        [activeBranchId, branchOrder]
+        [activeBranchId, branchOrder, branches]
     );
 
     const switchBranch = useCallback(
