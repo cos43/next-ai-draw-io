@@ -6,6 +6,7 @@ import { useDiagram } from "@/contexts/diagram-context";
 import { cn } from "@/lib/utils";
 import { MessageSquare, Minimize2 } from "lucide-react";
 import { useDrawioDiagnostics } from "@/hooks/use-drawio-diagnostics";
+import { WorkspaceNav } from "@/components/workspace-nav";
 
 export default function Home() {
     const { drawioRef, handleDiagramExport, setRuntimeError } = useDiagram();
@@ -69,14 +70,17 @@ export default function Home() {
 
     if (isMobile) {
         return (
-            <div className="flex items-center justify-center h-screen bg-gray-100">
-                <div className="text-center p-8">
-                    <h1 className="text-2xl font-semibold text-gray-800">
-                        FlowPilot Studio 在桌面端体验更佳
-                    </h1>
-                    <p className="mt-2 text-sm text-gray-500">
-                        请使用更大尺寸的屏幕，以便同时查看 draw.io 编辑器与智能助手。
-                    </p>
+            <div className="flex h-screen flex-col bg-gray-100">
+                <WorkspaceNav />
+                <div className="flex flex-1 items-center justify-center px-6">
+                    <div className="text-center rounded-2xl border border-gray-200 bg-white/90 p-8 shadow-sm">
+                        <h1 className="text-2xl font-semibold text-gray-800">
+                            FlowPilot Studio 在桌面端体验更佳
+                        </h1>
+                        <p className="mt-2 text-sm text-gray-500">
+                            请使用更大尺寸的屏幕，以便同时查看 draw.io 编辑器与智能助手。
+                        </p>
+                    </div>
                 </div>
             </div>
         );
@@ -87,8 +91,15 @@ export default function Home() {
         : "lg:grid-cols-[minmax(0,1fr)_0px]";
 
     return (
-        <div className={cn("h-screen bg-gray-100 lg:grid", desktopGridCols)}>
-            <div className="relative h-full min-h-0 p-1">
+        <div className="flex h-screen flex-col bg-gray-100">
+            <WorkspaceNav />
+            <div
+                className={cn(
+                    "flex-1 lg:grid",
+                    desktopGridCols
+                )}
+            >
+                <div className="relative h-full min-h-0 p-1">
                 <div className="pointer-events-none absolute top-4 right-4 z-20">
                     <button
                         type="button"
@@ -152,19 +163,20 @@ export default function Home() {
                         />
                     </>
                 )}
-            </div>
-            <div
-                className={cn(
-                    "hidden h-full min-h-0 p-1 transition-all duration-300 lg:block",
-                    isChatVisible
-                        ? "opacity-100"
-                        : "pointer-events-none opacity-0 translate-x-4"
-                )}
-            >
-                <ChatPanelOptimized
-                    onCollapse={() => setIsChatVisible(false)}
-                    isCollapsible
-                />
+                </div>
+                <div
+                    className={cn(
+                        "hidden h-full min-h-0 p-1 transition-all duration-300 lg:block",
+                        isChatVisible
+                            ? "opacity-100"
+                            : "pointer-events-none opacity-0 translate-x-4"
+                    )}
+                >
+                    <ChatPanelOptimized
+                        onCollapse={() => setIsChatVisible(false)}
+                        isCollapsible
+                    />
+                </div>
             </div>
         </div>
     );

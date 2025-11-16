@@ -62,18 +62,25 @@ export function ModelSelector({
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             const target = event.target as Node;
+            console.log('[ModelSelector] Click outside detected:', {
+                target,
+                triggerContains: triggerRef.current?.contains(target),
+                dropdownContains: dropdownRef.current?.contains(target),
+                isOpen
+            });
             if (
                 triggerRef.current?.contains(target) ||
                 dropdownRef.current?.contains(target)
             ) {
                 return;
             }
+            console.log('[ModelSelector] Closing dropdown');
             setIsOpen(false);
         }
 
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
+    }, [isOpen]);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -109,6 +116,7 @@ export function ModelSelector({
     );
 
     const handleSelect = (modelKey: string) => {
+        console.log('[ModelSelector] handleSelect called:', modelKey);
         onModelChange(modelKey);
         setIsOpen(false);
     };
@@ -123,7 +131,11 @@ export function ModelSelector({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => setIsOpen((prev) => !prev)}
+                onClick={(e) => {
+                    console.log('[ModelSelector] Trigger clicked, current isOpen:', isOpen);
+                    e.stopPropagation();
+                    setIsOpen((prev) => !prev);
+                }}
                 disabled={disabled}
                 ref={triggerRef}
                 className={cn(
@@ -144,13 +156,19 @@ export function ModelSelector({
                 createPortal(
                     <div
                         ref={dropdownRef}
-                        className="z-[1000]"
+                        className="z-[9999] pointer-events-auto"
                         style={{
                             position: "absolute",
                             top: menuPosition.top,
                             left: menuPosition.left,
                             width: Math.max(menuPosition.width, 280),
                             transform: "translateY(calc(-100% - 8px))",
+                        }}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                        }}
+                        onMouseDown={(e) => {
+                            e.stopPropagation();
                         }}
                     >
                         <div className="w-full rounded-2xl border border-slate-100 bg-white/95 shadow-xl">
@@ -184,7 +202,15 @@ export function ModelSelector({
                                                 <button
                                                     key={model.key}
                                                     type="button"
-                                                    onClick={() => handleSelect(model.key)}
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        handleSelect(model.key);
+                                                    }}
+                                                    onMouseDown={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                    }}
                                                     className={cn(
                                                         "flex w-full flex-col items-start gap-0.5 px-4 py-2 text-left text-sm transition hover:bg-slate-50",
                                                         selectedModelKey === model.key &&
@@ -213,9 +239,16 @@ export function ModelSelector({
                                     type="button"
                                     variant="ghost"
                                     className="w-full rounded-full text-xs font-semibold text-slate-500 hover:text-slate-900"
-                                    onClick={() => {
+                                    onClick={(e) => {
+                                        console.log('[ModelSelector] Manage button clicked');
+                                        e.preventDefault();
+                                        e.stopPropagation();
                                         setIsOpen(false);
+                                        console.log('[ModelSelector] Calling onManage');
                                         onManage?.();
+                                    }}
+                                    onMouseDown={(e) => {
+                                        e.stopPropagation();
                                     }}
                                 >
                                     管理模型

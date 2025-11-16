@@ -1,0 +1,89 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { TestTube, Presentation, Workflow } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const WORKSPACES = [
+    {
+        id: "diagram",
+        href: "/",
+        label: "画图工作室",
+        description: "FlowPilot Studio",
+        icon: Workflow,
+    },
+    {
+        id: "ppt",
+        href: "/ppt",
+        label: "PPT 工作室",
+        description: "AI 幻灯片实验室",
+        icon: Presentation,
+        badge: "实验功能",
+    },
+];
+
+interface WorkspaceNavProps {
+    className?: string;
+}
+
+export function WorkspaceNav({ className }: WorkspaceNavProps) {
+    const pathname = usePathname();
+
+    return (
+        <div
+            className={cn(
+                "border-b border-slate-200/70 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60",
+                className
+            )}
+        >
+            <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                    <TestTube className="h-4 w-4 text-emerald-500" />
+                    FlowPilot 多模态实验室
+                </div>
+                <nav className="flex items-center gap-2">
+                    {WORKSPACES.map((workspace) => {
+                        const Icon = workspace.icon;
+                        const active =
+                            workspace.href === "/"
+                                ? pathname === workspace.href
+                                : pathname?.startsWith(workspace.href);
+                        return (
+                            <Link
+                                key={workspace.id}
+                                href={workspace.href}
+                                className={cn(
+                                    "group flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition",
+                                    active
+                                        ? "border-slate-900 bg-slate-900 text-white shadow-sm"
+                                        : "border-transparent bg-slate-100/70 text-slate-700 hover:border-slate-200 hover:bg-white"
+                                )}
+                            >
+                                <Icon
+                                    className={cn(
+                                        "h-4 w-4",
+                                        active ? "text-white" : "text-slate-500"
+                                    )}
+                                />
+                                <span>{workspace.label}</span>
+                                {workspace.badge && (
+                                    <span
+                                        className={cn(
+                                            "rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.2em]",
+                                            active
+                                                ? "bg-white/15 text-white"
+                                                : "bg-amber-100 text-amber-600"
+                                        )}
+                                    >
+                                        {workspace.badge}
+                                    </span>
+                                )}
+                            </Link>
+                        );
+                    })}
+                </nav>
+            </div>
+        </div>
+    );
+}

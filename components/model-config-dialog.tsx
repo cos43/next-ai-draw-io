@@ -272,7 +272,7 @@ export function ModelConfigDialog({
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="flex flex-col gap-4 overflow-y-auto px-6 py-5">
+                <div className="flex max-h-[calc(90vh-180px)] flex-col gap-4 overflow-y-auto px-6 py-5">
                     <div className="rounded-2xl border border-dashed border-slate-200/70 bg-slate-50/60 px-4 py-3 text-xs text-slate-500">
                         提示：WanQing、OpenRouter、OpenAI 自建代理都可以通过自定义 Base URL 接入；确保该接口支持 OpenAI 兼容协议。
                     </div>

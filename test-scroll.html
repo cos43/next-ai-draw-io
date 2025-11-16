@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scroll Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            padding: 20px;
+            font-family: system-ui;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            border: 2px solid #e2e8f0;
+            padding: 16px;
+            border-radius: 8px;
+        }
+        
+        .scroll-container {
+            width: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .card-wrapper {
+            display: flex;
+            gap: 12px;
+            padding-bottom: 8px;
+        }
+        
+        .card {
+            width: 360px;
+            height: 320px;
+            flex-shrink: 0;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            background: white;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .card-preview {
+            flex: 1;
+            background: #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+        }
+        
+        .card-info {
+            padding: 12px;
+            border-top: 1px solid #e2e8f0;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="margin-bottom: 20px;">横向滚动测试</h1>
+    
+    <div class="container">
+        <h2 style="margin-bottom: 12px; font-size: 14px; color: #64748b;">模型对比</h2>
+        
+        <div class="scroll-container">
+            <div class="card-wrapper">
+                <div class="card">
+                    <div class="card-preview">模型 A</div>
+                    <div class="card-info">claude4 - 模型 A</div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-preview">模型 B</div>
+                    <div class="card-info">claude4 - 模型 B</div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-preview">模型 C</div>
+                    <div class="card-info">claude4 - 模型 C</div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-preview">模型v>
+                    <div class="card-info">claude4 - 模型 D</div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-preview">模型 E</div>
+                    <div class="card-info">claude4 - 模型 E</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <p style="margin-top: 20px; color: #64748b;">
+        提示：如果看到横向滚动条，说明滚动正常工作！
+    </p>
+</body>
+</html>

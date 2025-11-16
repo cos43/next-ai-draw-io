@@ -62,8 +62,7 @@ export function useComparisonWorkbench({
     const initialModelKey = selectedModelKey ?? modelOptions[0]?.key ?? "";
     const [comparisonConfig, setComparisonConfig] =
         useState<ComparisonModelConfig>({
-            primary: initialModelKey,
-            secondary: initialModelKey,
+            models: [initialModelKey, initialModelKey],
         });
     const [isComparisonConfigOpen, setIsComparisonConfigOpen] = useState(false);
     const [comparisonHistory, setComparisonHistory] = useState<
@@ -110,17 +109,24 @@ export function useComparisonWorkbench({
 
     useEffect(() => {
         setComparisonConfig((prev) => {
-            const nextPrimary = normalizeModelKey(prev.primary);
-            const nextSecondary = normalizeModelKey(prev.secondary);
-            if (
-                nextPrimary === prev.primary &&
-                nextSecondary === prev.secondary
-            ) {
+            // 验证并修正配置中的每个模型
+            const validatedModels = prev.models
+                .map(key => normalizeModelKey(key))
+                .filter(Boolean);
+            
+            // 确保至少有2个模型
+            while (validatedModels.length < 2) {
+                validatedModels.push(normalizeModelKey());
+            }
+            
+            // 检查是否有变化
+            if (validatedModels.length === prev.models.length &&
+                validatedModels.every((key, idx) => key === prev.models[idx])) {
                 return prev;
             }
+            
             return {
-                primary: nextPrimary,
-                secondary: nextSecondary,
+                models: validatedModels,
             };
         });
     }, [normalizeModelKey]);
@@ -614,19 +620,18 @@ export function useComparisonWorkbench({
             return;
         }
 
+        // 从配置中获取所有选中的模型
         const resolvedOptions: RuntimeModelOption[] = [];
-        const primaryOption = getModelOption(comparisonConfig.primary);
-        const secondaryOption = getModelOption(comparisonConfig.secondary);
-        if (primaryOption) {
-            resolvedOptions.push(primaryOption);
-        }
-        if (
-            secondaryOption &&
-            (!primaryOption || secondaryOption.key !== primaryOption.key)
-        ) {
-            resolvedOptions.push(secondaryOption);
+        
+        // 允许相同模型重复出现，以便用户测试同一模型的随机性/稳定性
+        for (const modelKey of comparisonConfig.models) {
+            const option = getModelOption(modelKey);
+            if (option) {
+                resolvedOptions.push(option);
+            }
         }
 
+        // 如果配置为空，尝试使用当前选中的模型
         if (resolvedOptions.length === 0 && selectedModelKey) {
             const fallback = getModelOption(selectedModelKey);
             if (fallback) {
@@ -642,13 +647,14 @@ export function useComparisonWorkbench({
             return;
         }
 
-        const slots: Array<"A" | "B"> = ["A", "B"];
-        const normalizedOptions =
-            resolvedOptions.length === 1
-                ? [resolvedOptions[0], resolvedOptions[0]]
-                : resolvedOptions.slice(0, 2);
+        // 确保至少有2个模型用于对比
+        if (resolvedOptions.length < 2) {
+            // 如果只有一个模型，复制它作为第二个
+            resolvedOptions.push(resolvedOptions[0]);
+        }
 
-        const modelsMeta: ComparisonModelMeta[] = normalizedOptions.map(
+        const slots = ["A", "B", "C", "D", "E"];
+        const modelsMeta: ComparisonModelMeta[] = resolvedOptions.map(
             (option, index) => {
                 const slot = slots[index] ?? "A";
                 return {
@@ -674,10 +680,9 @@ export function useComparisonWorkbench({
         const originBranchId = activeBranchId;
         const branchSeedMessages = cloneMessages(activeBranch?.messages ?? []);
 
-        // 使用传入的 userMessageId，如果没有则使用当前 messages 的最后一条
-        const anchorMessageId = userMessageId || (messages.length
-            ? messages[messages.length - 1]?.id ?? null
-            : null);
+        // 直接使用传入的 userMessageId 作为锚点
+        // 确保对比结果能正确关联到用户消息
+        const anchorMessageId = userMessageId ?? null;
 
         const requestId = createComparisonEntry({
             prompt: enrichedInput, // 立即保存提示词，确保在任何状态下都能看到
@@ -826,8 +831,7 @@ export function useComparisonWorkbench({
         activeBranchId,
         beginComparisonRequest,
         briefContext,
-        comparisonConfig.primary,
-        comparisonConfig.secondary,
+        comparisonConfig.models,
         createComparisonBranchesForResults,
         createComparisonEntry,
         ensureBranchSelectionSettled,
@@ -838,6 +842,7 @@ export function useComparisonWorkbench({
         messages,
         normalizeComparisonResults,
         onFetchChart,
+        selectedModelKey,
         status,
         triggerComparisonNotice,
         updateComparisonEntry,

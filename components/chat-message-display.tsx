@@ -3,7 +3,6 @@
 import type React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import {ScrollArea} from "@/components/ui/scroll-area";
 import {Button} from "@/components/ui/button";
 import {cn} from "@/lib/utils";
 import { svgToDataUrl } from "@/lib/svg";
@@ -60,9 +59,9 @@ export function ChatMessageDisplay({
 }: ChatMessageDisplayProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const processedToolCalls = useRef<Set<string>>(new Set());
-    const [expandedTools, setExpandedTools] = useState<Record<string, boolean>>(
-        {}
-    );
+    const [expandedTools, setExpandedTools] = useState<Record<string, boolean>>({});
+    const [expandedMessages, setExpandedMessages] = useState<Record<string, boolean>>({});
+    const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
     useEffect(() => {
         if (messagesEndRef.current) {
             messagesEndRef.current.scrollIntoView({behavior: "smooth"});
@@ -346,8 +345,16 @@ export function ChatMessageDisplay({
                             </div>
                         </div>
                     )}
-
-                    <div className="grid gap-3 sm:grid-cols-2">
+                    {/* 横向滚动容器 */}
+                    <div className="w-full overflow-x-auto">
+                        <div 
+                            className="flex gap-3 pb-2"
+                            style={{
+                                width: `${entry.results.length * 360 + (entry.results.length - 1) * 12}px`,
+                                overflowX: 'auto',
+                                scrollBehavior: 'smooth',
+                            }}
+                        >
                         {entry.results.map((result, resultIndex) => {
                             const cardKey = `${keyBase}-${result.id ?? resultIndex}`;
                             const trimmedEncodedXml = result.encodedXml?.trim();
@@ -401,7 +408,7 @@ export function ChatMessageDisplay({
                                 <div
                                     key={cardKey}
                                     className={cn(
-                                        "group relative flex flex-col rounded-lg overflow-hidden transition-all duration-200 border",
+                                        "group relative flex flex-col rounded-lg overflow-hidden transition-all duration-200 border flex-shrink-0",
                                         result.status === "ok"
                                             ? "bg-white border-slate-200/60"
                                             : result.status === "loading"
@@ -409,9 +416,10 @@ export function ChatMessageDisplay({
                                                 : "bg-red-50/50 border-red-200/40",
                                         isActive && "ring-1 ring-blue-400"
                                     )}
+                                    style={{ width: '360px', height: '260px' }}
                                 >
                                     {/* 预览图区域 */}
-                                    <div className="relative bg-slate-50/30">
+                                    <div className="relative bg-slate-50/30" style={{ height: '220px' }}>
                                         <div 
                                             role={result.status === "ok" ? "button" : undefined}
                                             tabIndex={result.status === "ok" ? 0 : -1}
@@ -420,7 +428,7 @@ export function ChatMessageDisplay({
                                                 onComparisonPreview?.(entry.requestId, result)
                                             }
                                             className={cn(
-                                                "flex h-[200px] w-full justify-center overflow-hidden p-2",
+                                                "flex h-full w-full justify-center items-center overflow-hidden p-2",
                                                 result.status === "ok" && "cursor-pointer"
                                             )}
                                         >
@@ -596,6 +604,7 @@ export function ChatMessageDisplay({
                                 </div>
                             );
                         })}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -625,6 +634,25 @@ export function ChatMessageDisplay({
         return "";
     };
 
+    // 复制消息内容
+    const handleCopyMessage = async (messageId: string, text: string) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopiedMessageId(messageId);
+            setTimeout(() => setCopiedMessageId(null), 2000);
+        } catch (err) {
+            console.error('Failed to copy:', err);
+        }
+    };
+
+    // 切换消息展开/折叠
+    const toggleMessageExpanded = (messageId: string) => {
+        setExpandedMessages(prev => ({
+            ...prev,
+            [messageId]: !prev[messageId]
+        }));
+    };
+
     const renderedAnchors = new Set<string>();
     const showExamplePanel = (
         messages.length === 0 &&
@@ -633,7 +661,7 @@ export function ChatMessageDisplay({
     );
 
     return (
-        <ScrollArea className="h-full pr-4">
+        <div className="h-full overflow-y-auto pr-4">
             {showExamplePanel ? (
                 <div className="py-2">
                     <ExamplePanel
@@ -673,6 +701,13 @@ export function ChatMessageDisplay({
                             renderedAnchors.add(message.id);
                         }
 
+                        // 获取完整消息文本用于折叠检测和复制
+                        const fullMessageText = resolveMessageText(message);
+                        const messageLength = fullMessageText.length;
+                        const shouldCollapse = messageLength > 500; // 超过500字符自动折叠
+                        const isExpanded = expandedMessages[message.id] ?? !shouldCollapse;
+                        const isCopied = copiedMessageId === message.id;
+
                         return (
                             <div key={message.id} className="mb-5 flex flex-col gap-2">
                                 {hasBubbleContent && (
@@ -682,44 +717,124 @@ export function ChatMessageDisplay({
                                             isUser ? "justify-end" : "justify-start"
                                         )}
                                     >
-                                        <div
-                                            className={cn(
-                                                "max-w-[min(720px,90%)] rounded-lg px-3.5 py-2.5 text-sm leading-relaxed",
-                                                "whitespace-pre-wrap break-words",
-                                                isUser
-                                                    ? "bg-slate-900 text-white"
-                                                    : "border border-slate-200/60 bg-white text-slate-900"
-                                            )}
-                                        >
-                                            {contentParts.map((part: any, index: number) => {
-                                                switch (part.type) {
-                                                    case "text":
-                                                        const textToShow =
-                                                            part.displayText ?? part.text ?? "";
-                                                        return (
-                                                            <div key={index} className="mb-1 last:mb-0">
-                                                                {textToShow}
-                                                            </div>
-                                                        );
-                                                    case "file":
-                                                        return (
-                                                            <div key={index} className="mt-3">
-                                                                <Image
-                                                                    src={part.url}
-                                                                    width={240}
-                                                                    height={240}
-                                                                    alt={`file-${index}`}
-                                                                    className="rounded-xl border object-contain"
-                                                                />
-                                                            </div>
-                                                        );
-                                                    default:
-                                                        return null;
-                                                }
-                                            })}
-                                            {!contentParts.length && fallbackText && (
-                                                <div>{fallbackText}</div>
-                                            )}
+                                        <div className="relative max-w-[min(720px,90%)] group">
+                                            <div
+                                                className={cn(
+                                                    "rounded-lg px-3.5 py-2.5 text-sm leading-relaxed",
+                                                    "whitespace-pre-wrap break-words",
+                                                    isUser
+                                                        ? "bg-slate-900 text-white"
+                                                        : "border border-slate-200/60 bg-white text-slate-900",
+                                                    !isExpanded && "max-h-[200px] overflow-hidden relative"
+                                                )}
+                                            >
+                                                {contentParts.map((part: any, index: number) => {
+                                                    switch (part.type) {
+                                                        case "text":
+                                                            const textToShow =
+                                                                part.displayText ?? part.text ?? "";
+                                                            return (
+                                                                <div key={index} className="mb-1 last:mb-0">
+                                                                    {textToShow}
+                                                                </div>
+                                                            );
+                                                        case "file":
+                                                            return (
+                                                                <div key={index} className="mt-3">
+                                                                    <Image
+                                                                        src={part.url}
+                                                                        width={240}
+                                                                        height={240}
+                                                                        alt={`file-${index}`}
+                                                                        className="rounded-xl border object-contain"
+                                                                    />
+                                                                </div>
+                                                            );
+                                                        default:
+                                                            return null;
+                                                    }
+                                                })}
+                                                {!contentParts.length && fallbackText && (
+                                                    <div>{fallbackText}</div>
+                                                )}
+                                                {/* 折叠渐变遮罩 */}
+                                                {!isExpanded && (
+                                                    <div 
+                                                        className={cn(
+                                                            "absolute bottom-0 left-0 right-0 h-20 pointer-events-none",
+                                                            isUser 
+                                                                ? "bg-gradient-to-t from-slate-900 to-transparent" 
+                                                                : "bg-gradient-to-t from-white to-transparent"
+                                                        )}
+                                                    />
+                                                )}
+                                            </div>
+                                            
+                                            {/* 操作按钮栏 */}
+                                            <div className={cn(
+                                                "flex items-center gap-1.5 mt-1.5",
+                                                isUser ? "justify-end" : "justify-start"
+                                            )}>
+                                                {/* 复制按钮 */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleCopyMessage(message.id, fullMessageText)}
+                                                    className={cn(
+                                                        "flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-all",
+                                                        isUser 
+                                                            ? "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50" 
+                                                            : "text-slate-500 hover:text-slate-700 hover:bg-slate-100",
+                                                        isCopied && "text-emerald-600"
+                                                    )}
+                                                    title="复制消息"
+                                                >
+                                                    {isCopied ? (
+                                                        <>
+                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                            </svg>
+                                                            <span>已复制</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                                            </svg>
+                                                            <span>复制</span>
+                                                        </>
+                                                    )}
+                                                </button>
+                                                
+                                                {/* 展开/折叠按钮 */}
+                                                {shouldCollapse && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleMessageExpanded(message.id)}
+                                                        className={cn(
+                                                            "flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-all",
+                                                            isUser 
+                                                                ? "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50" 
+                                                                : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                                                        )}
+                                                    >
+                                                        {isExpanded ? (
+                                                            <>
+                                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                                                </svg>
+                                                                <span>收起</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                                </svg>
+                                                                <span>展开</span>
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 )}
@@ -785,6 +900,6 @@ export function ChatMessageDisplay({
                 </div>
             )}
             <div ref={messagesEndRef} />
-        </ScrollArea>
+        </div>
     );
 }

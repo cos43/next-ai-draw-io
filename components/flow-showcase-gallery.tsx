@@ -2,6 +2,7 @@
 
 import type { FlowShowcasePreset } from "@/features/chat-panel/constants";
 import { Sparkles } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface FlowShowcaseGalleryProps {
     presets: FlowShowcasePreset[];

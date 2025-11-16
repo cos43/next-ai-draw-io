@@ -4,8 +4,7 @@ import type { RuntimeModelConfig } from "@/types/model-config";
 export type ComparisonResultStatus = "loading" | "ok" | "error";
 
 export interface ComparisonModelConfig {
-    primary: string;
-    secondary: string;
+    models: string[]; // 存储模型 key 的数组，最多 5 个
 }
 
 export interface ComparisonModelMeta {
@@ -13,7 +12,7 @@ export interface ComparisonModelMeta {
     id: string;
     label: string;
     provider: string;
-    slot: "A" | "B";
+    slot: string; // 改为 string，支持 "A" | "B" | "C" | "D" | "E"
     runtime: RuntimeModelConfig;
 }
 
@@ -22,7 +21,7 @@ export interface ComparisonCardResult {
     modelId: string;
     label: string;
     provider: string;
-    slot: "A" | "B";
+    slot: string; // 改为 string，支持 "A" | "B" | "C" | "D" | "E"
     status: ComparisonResultStatus;
     runtime?: RuntimeModelConfig;
     summary?: string;

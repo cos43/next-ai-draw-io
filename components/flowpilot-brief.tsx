@@ -411,6 +411,49 @@ export function FlowPilotBrief({
     );
 }
 
+interface FlowPilotBriefDialogProps extends FlowPilotBriefProps {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+}
+
+export function FlowPilotBriefDialog({
+    state,
+    onChange,
+    disabled = false,
+    open,
+    onOpenChange,
+}: FlowPilotBriefDialogProps) {
+    const handleOpenChange = (nextOpen: boolean) => {
+        if (disabled && nextOpen) {
+            return;
+        }
+        onOpenChange(nextOpen);
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={handleOpenChange}>
+            <DialogContent className="max-w-4xl">
+                <DialogHeader>
+                    <DialogTitle>FlowPilot Brief 偏好配置</DialogTitle>
+                    <DialogDescription>
+                        配置图表创作意图、调性与护栏，所有后续请求都会带着这些偏好执行。
+                    </DialogDescription>
+                </DialogHeader>
+                <FlowPilotBrief state={state} onChange={onChange} disabled={disabled} />
+                <DialogFooter>
+                    <Button
+                        type="button"
+                        onClick={() => handleOpenChange(false)}
+                        disabled={disabled}
+                    >
+                        完成
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 interface FlowPilotBriefLauncherProps extends FlowPilotBriefProps {
     badges: string[];
 }
@@ -473,26 +516,13 @@ export function FlowPilotBriefLauncher({
                 </div>
                 {renderSummaryBadges()}
             </div>
-            <Dialog open={isOpen} onOpenChange={(open) => !disabled && setIsOpen(open)}>
-                <DialogContent className="max-w-4xl">
-                    <DialogHeader>
-                        <DialogTitle>FlowPilot Brief 偏好配置</DialogTitle>
-                        <DialogDescription>
-                            配置图表创作意图、调性与护栏，所有后续请求都会带着这些偏好执行。
-                        </DialogDescription>
-                    </DialogHeader>
-                    <FlowPilotBrief state={state} onChange={onChange} disabled={disabled} />
-                    <DialogFooter>
-                        <Button
-                            type="button"
-                            onClick={() => setIsOpen(false)}
-                            disabled={disabled}
-                        >
-                            完成
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <FlowPilotBriefDialog
+                state={state}
+                onChange={onChange}
+                disabled={disabled}
+                open={isOpen}
+                onOpenChange={setIsOpen}
+            />
         </>
     );
 }

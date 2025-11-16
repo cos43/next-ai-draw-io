@@ -42,6 +42,7 @@ import type { QuickActionDefinition } from "@/components/quick-action-bar";
 import { FlowShowcaseGallery } from "./flow-showcase-gallery";
 import {
     FlowPilotBriefLauncher,
+    FlowPilotBriefDialog,
     FlowPilotBriefState,
     FOCUS_OPTIONS,
     GUARDRAIL_OPTIONS,
@@ -167,6 +168,7 @@ export default function ChatPanelOptimized({
     const [activeToolPanel, setActiveToolPanel] = useState<ToolPanel | null>(null);
     const [isToolSidebarOpen, setIsToolSidebarOpen] = useState(false);
     const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
+    const [isBriefDialogOpen, setIsBriefDialogOpen] = useState(false);
     const [contactCopyState, setContactCopyState] = useState<"idle" | "copied">(
         "idle"
     );
@@ -681,9 +683,11 @@ export default function ChatPanelOptimized({
     ).length;
 
     const handleOpenBriefPanel = useCallback(() => {
-        setActiveToolPanel("brief");
-        setIsToolSidebarOpen(true);
-    }, [setActiveToolPanel, setIsToolSidebarOpen]);
+        if (status === "streaming") {
+            return;
+        }
+        setIsBriefDialogOpen(true);
+    }, [status]);
 
     const toggleToolPanel = (panel: ToolPanel) => {
         setActiveToolPanel((current) => {
@@ -1066,7 +1070,9 @@ export default function ChatPanelOptimized({
                                 comparisonHistory={comparisonHistory}
                                 activePreview={activeComparisonPreview}
                                 onMessageRevert={handleMessageRevert}
-                                onOpenBriefPanel={handleOpenBriefPanel}
+                                onOpenBriefPanel={
+                                    status === "streaming" ? undefined : handleOpenBriefPanel
+                                }
                                 briefBadges={briefDisplayBadges}
                                 briefSummary={briefSummary}
                             />
@@ -1109,7 +1115,12 @@ export default function ChatPanelOptimized({
                             <button
                                 type="button"
                                 onClick={handleOpenBriefPanel}
-                                className="shrink-0 rounded-full border border-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500 transition hover:border-slate-400"
+                                disabled={status === "streaming"}
+                                className={cn(
+                                    "shrink-0 rounded-full border border-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500 transition hover:border-slate-400",
+                                    status === "streaming" &&
+                                        "cursor-not-allowed opacity-50 hover:border-slate-200"
+                                )}
                             >
                                 调整
                             </button>
@@ -1229,6 +1240,18 @@ export default function ChatPanelOptimized({
                 </div>
             </DialogContent>
         </Dialog>
+        <FlowPilotBriefDialog
+            open={isBriefDialogOpen}
+            onOpenChange={setIsBriefDialogOpen}
+            state={briefState}
+            onChange={(next) =>
+                setBriefState((prev) => ({
+                    ...prev,
+                    ...next,
+                }))
+            }
+            disabled={status === "streaming"}
+        />
         <ModelComparisonConfigDialog
             open={isComparisonConfigOpen}
             onOpenChange={setIsComparisonConfigOpen}
