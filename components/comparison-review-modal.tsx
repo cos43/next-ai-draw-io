@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import {
     Dialog,
     DialogContent,
@@ -192,17 +193,27 @@ function PreviewPanel({
                     </div>
                     {result.status === "ok" ? (
                         hasPreviewSvg ? (
-                            <img
-                                src={previewSvgSrc ?? ""}
-                                alt={`comparison-preview-svg-${result.id}`}
-                                className="block h-full w-full object-cover"
-                            />
+                            <div className="relative h-full w-full">
+                                <Image
+                                    src={previewSvgSrc ?? ""}
+                                    alt={`comparison-preview-svg-${result.id}`}
+                                    fill
+                                    className="object-cover"
+                                    sizes="(max-width: 768px) 100vw, 400px"
+                                    unoptimized
+                                />
+                            </div>
                         ) : hasPreviewImage ? (
-                            <img
-                                src={result.previewImage}
-                                alt={`comparison-preview-${result.id}`}
-                                className="block h-full w-full object-cover"
-                            />
+                            <div className="relative h-full w-full">
+                                <Image
+                                    src={result.previewImage}
+                                    alt={`comparison-preview-${result.id}`}
+                                    fill
+                                    className="object-cover"
+                                    sizes="(max-width: 768px) 100vw, 400px"
+                                    unoptimized
+                                />
+                            </div>
                         ) : previewUrl ? (
                             <iframe
                                 src={previewUrl}

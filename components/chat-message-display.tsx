@@ -436,17 +436,27 @@ export function ChatMessageDisplay({
                                                 hasPreview ? (
                                                     <>
                                                         {previewSvgSrc ? (
-                                                            <img
-                                                                src={previewSvgSrc}
-                                                                alt={`comparison-preview-svg-${cardKey}`}
-                                                                className="block h-full w-full object-cover"
-                                                            />
+                                                            <div className="relative h-full w-full">
+                                                                <Image
+                                                                    src={previewSvgSrc}
+                                                                    alt={`comparison-preview-svg-${cardKey}`}
+                                                                    fill
+                                                                    className="object-cover"
+                                                                    sizes="(max-width: 768px) 100vw, 360px"
+                                                                    unoptimized
+                                                                />
+                                                            </div>
                                                         ) : previewImageSrc ? (
-                                                            <img
-                                                                src={previewImageSrc}
-                                                                alt={`comparison-preview-${cardKey}`}
-                                                                className="block h-full w-full object-cover"
-                                                            />
+                                                            <div className="relative h-full w-full">
+                                                                <Image
+                                                                    src={previewImageSrc}
+                                                                    alt={`comparison-preview-${cardKey}`}
+                                                                    fill
+                                                                    className="object-cover"
+                                                                    sizes="(max-width: 768px) 100vw, 360px"
+                                                                    unoptimized
+                                                                />
+                                                            </div>
                                                         ) : previewUrl ? (
                                                             <iframe
                                                                 src={previewUrl}

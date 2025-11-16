@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import {
     Dialog,
     DialogContent,
@@ -50,12 +51,16 @@ export function HistoryDialog({
                                 }}
                             >
                                 <div className="aspect-video bg-white rounded overflow-hidden flex items-center justify-center">
-                                    <img
-                                        src={item.svg}
-                                        alt={`图表版本 ${index + 1}`}
-                                        className="object-contain w-full h-full p-1"
-                                        loading="lazy"
-                                    />
+                                    <div className="relative h-full w-full">
+                                        <Image
+                                            src={item.svg}
+                                            alt={`图表版本 ${index + 1}`}
+                                            fill
+                                            className="object-contain p-1"
+                                            sizes="(max-width: 640px) 50vw, 200px"
+                                            unoptimized
+                                        />
+                                    </div>
                                 </div>
                                 <div className="text-xs text-center mt-1 text-gray-500">
                                     版本 {index + 1}

@@ -93,10 +93,13 @@ export function FilePreviewList({
                                         onClick={() => setSelectedImage(imageUrl)}
                                         aria-label={`预览 ${file.name}`}
                                     >
-                                        <img
+                                        <Image
                                             src={imageUrl}
                                             alt={file.name}
+                                            width={24}
+                                            height={24}
                                             className="h-full w-full object-cover"
+                                            unoptimized
                                         />
                                     </button>
                                 ) : (
