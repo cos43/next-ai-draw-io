@@ -410,6 +410,7 @@ export function toBase64Xml(xml: string): string {
   }
   try {
     if (typeof window === "undefined") {
+      // eslint-disable-next-line n/no-unsupported-features/node-builtins
       return Buffer.from(xml, "utf-8").toString("base64");
     }
     return window.btoa(unescape(encodeURIComponent(xml)));
