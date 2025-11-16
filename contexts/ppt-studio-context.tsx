@@ -185,7 +185,7 @@ export function PptStudioProvider({ children }: { children: React.ReactNode }) {
                         ? {
                               ...slide,
                               ...patch,
-                              status: "edited",
+                              status: "edited" as const,
                           }
                         : slide
                 );

@@ -206,7 +206,7 @@ function PreviewPanel({
                         ) : hasPreviewImage ? (
                             <div className="relative h-full w-full">
                                 <Image
-                                    src={result.previewImage}
+                                    src={result.previewImage ?? ""}
                                     alt={`comparison-preview-${result.id}`}
                                     fill
                                     className="object-cover"

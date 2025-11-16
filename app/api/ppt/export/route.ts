@@ -111,8 +111,8 @@ export async function POST(req: Request) {
             }
         }
 
-        const rawOutput = await pptx.write("nodebuffer");
-        const body = Buffer.isBuffer(rawOutput)
+        const rawOutput = await pptx.write({ outputType: "nodebuffer" });
+        const buffer = Buffer.isBuffer(rawOutput)
             ? rawOutput
             : Buffer.from(rawOutput as ArrayBuffer);
 
@@ -120,7 +120,7 @@ export async function POST(req: Request) {
             .replace(/[^a-zA-Z0-9\u4e00-\u9fa5-_]+/g, "-")
             .slice(0, 60)}.pptx`;
 
-        return new Response(body, {
+        return new Response(new Uint8Array(buffer), {
             headers: {
                 "Content-Type":
                     "application/vnd.openxmlformats-officedocument.presentationml.presentation",
