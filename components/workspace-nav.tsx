@@ -4,24 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { TestTube, Presentation, Workflow } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const WORKSPACES = [
-    {
-        id: "diagram",
-        href: "/",
-        label: "画图工作室",
-        description: "FlowPilot Studio",
-        icon: Workflow,
-    },
-    {
-        id: "ppt",
-        href: "/ppt",
-        label: "PPT 工作室",
-        description: "AI 幻灯片实验室",
-        icon: Presentation,
-        badge: "实验功能",
-    },
-];
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { useLocale } from "@/contexts/locale-context";
 
 interface WorkspaceNavProps {
     className?: string;
@@ -29,6 +13,25 @@ interface WorkspaceNavProps {
 
 export function WorkspaceNav({ className }: WorkspaceNavProps) {
     const pathname = usePathname();
+    const { t } = useLocale();
+
+    const WORKSPACES = [
+        {
+            id: "diagram",
+            href: "/",
+            label: t("nav.workspace"),
+            description: "FlowPilot Studio",
+            icon: Workflow,
+        },
+        {
+            id: "ppt",
+            href: "/ppt",
+            label: t("nav.pptStudio"),
+            description: "AI 幻灯片实验室",
+            icon: Presentation,
+            badge: t("common.experimental") || "实验功能",
+        },
+    ];
 
     return (
         <div
@@ -42,8 +45,9 @@ export function WorkspaceNav({ className }: WorkspaceNavProps) {
                     <TestTube className="h-4 w-4 text-emerald-500" />
                     FlowPilot 多模态实验室
                 </div>
-                <nav className="flex items-center gap-2">
-                    {WORKSPACES.map((workspace) => {
+                <div className="flex items-center gap-3">
+                    <nav className="flex items-center gap-2">
+                        {WORKSPACES.map((workspace) => {
                         const Icon = workspace.icon;
                         const active =
                             workspace.href === "/"
@@ -82,7 +86,9 @@ export function WorkspaceNav({ className }: WorkspaceNavProps) {
                             </Link>
                         );
                     })}
-                </nav>
+                    </nav>
+                    <LanguageSwitcher />
+                </div>
             </div>
         </div>
     );

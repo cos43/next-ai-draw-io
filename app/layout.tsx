@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
 import { DiagramProvider } from "@/contexts/diagram-context";
 import { ConversationProvider } from "@/contexts/conversation-context";
+import { LocaleProvider } from "@/contexts/locale-context";
 
 import "./globals.css";
 
@@ -17,8 +18,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "FlowPilot 智能流程图",
-    description: "将 draw.io 与对话式 AI 助手结合的智能制图工作台。",
+    title: "FlowPilot | 智能流程图",
+    description: "将 draw.io 与对话式 AI 助手结合的智能制图工作台 | Intelligent diagramming workbench combining draw.io with conversational AI assistant.",
 };
 
 export default function RootLayout({
@@ -31,9 +32,11 @@ export default function RootLayout({
             <body
                 className={`${geistSans.variable} ${geistMono.variable} antialiased`}
             >
-                <ConversationProvider>
-                    <DiagramProvider>{children}</DiagramProvider>
-                </ConversationProvider>
+                <LocaleProvider>
+                    <ConversationProvider>
+                        <DiagramProvider>{children}</DiagramProvider>
+                    </ConversationProvider>
+                </LocaleProvider>
 
                 <Analytics />
             </body>

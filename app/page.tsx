@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { DrawIoEmbed } from "react-drawio";
 import ChatPanelOptimized from "@/components/chat-panel-optimized";
 import { useDiagram } from "@/contexts/diagram-context";
+import { useLocale } from "@/contexts/locale-context";
 import { cn } from "@/lib/utils";
 import { MessageSquare, Minimize2 } from "lucide-react";
 import { useDrawioDiagnostics } from "@/hooks/use-drawio-diagnostics";
@@ -10,6 +11,7 @@ import { WorkspaceNav } from "@/components/workspace-nav";
 
 export default function Home() {
     const { drawioRef, handleDiagramExport, setRuntimeError } = useDiagram();
+    const { t } = useLocale();
     const [isMobile, setIsMobile] = useState(false);
     const [drawioError, setDrawioError] = useState<string | null>(null);
     const [isDrawioLoading, setIsDrawioLoading] = useState(true);
@@ -53,7 +55,7 @@ export default function Home() {
         // 设置超时检测 - 如果 15 秒后仍未加载成功，显示错误
         const timeout = setTimeout(() => {
             if (isDrawioLoading) {
-                setDrawioError("DrawIO 加载超时。如果 embed.diagrams.net 无法访问，请配置 NEXT_PUBLIC_DRAWIO_BASE_URL 环境变量。");
+                setDrawioError(t("drawio.loadTimeout"));
                 setIsDrawioLoading(false);
             }
         }, 15000); // 15秒超时
@@ -61,7 +63,7 @@ export default function Home() {
         return () => {
             clearTimeout(timeout);
         };
-    }, [isDrawioLoading]);
+    }, [isDrawioLoading, t]);
 
     const handleDrawioLoad = () => {
         setIsDrawioLoading(false);
@@ -75,10 +77,10 @@ export default function Home() {
                 <div className="flex flex-1 items-center justify-center px-6">
                     <div className="text-center rounded-2xl border border-gray-200 bg-white/90 p-8 shadow-sm">
                         <h1 className="text-2xl font-semibold text-gray-800">
-                            FlowPilot Studio 在桌面端体验更佳
+                            {t("workspace.mobileWarning")}
                         </h1>
                         <p className="mt-2 text-sm text-gray-500">
-                            请使用更大尺寸的屏幕，以便同时查看 draw.io 编辑器与智能助手。
+                            {t("workspace.mobileHint")}
                         </p>
                     </div>
                 </div>
@@ -109,12 +111,12 @@ export default function Home() {
                         {isChatVisible ? (
                             <>
                                 <Minimize2 className="h-3.5 w-3.5" />
-                                专注画布
+                                {t("workspace.focusCanvas")}
                             </>
                         ) : (
                             <>
                                 <MessageSquare className="h-3.5 w-3.5" />
-                                显示聊天
+                                {t("workspace.showChat")}
                             </>
                         )}
                     </button>
@@ -123,18 +125,18 @@ export default function Home() {
                     <div className="flex items-center justify-center h-full bg-white rounded border-2 border-red-200">
                         <div className="text-center p-8 max-w-md">
                             <h2 className="text-xl font-semibold text-red-600 mb-4">
-                                加载 DrawIO 失败
+                                {t("drawio.loadFailed")}
                             </h2>
                             <p className="text-gray-700 mb-4">{drawioError}</p>
                             <div className="text-sm text-gray-600 text-left bg-gray-50 p-4 rounded">
-                                <p className="font-semibold mb-2">解决方案：</p>
+                                <p className="font-semibold mb-2">{t("drawio.solutions")}</p>
                                 <ol className="list-decimal list-inside space-y-1">
-                                    <li>检查网络连接是否正常</li>
-                                    <li>如果 embed.diagrams.net 无法访问，创建 .env.local 文件并添加：</li>
+                                    <li>{t("drawio.solution1")}</li>
+                                    <li>{t("drawio.solution2")}</li>
                                     <li className="ml-4 font-mono text-xs bg-white p-2 rounded mt-2">
                                         NEXT_PUBLIC_DRAWIO_BASE_URL=https://app.diagrams.net
                                     </li>
-                                    <li>然后重启开发服务器</li>
+                                    <li>{t("drawio.solution3")}</li>
                                 </ol>
                             </div>
                         </div>
@@ -145,7 +147,7 @@ export default function Home() {
                             <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-10">
                                 <div className="text-center">
                                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                                    <p className="text-gray-600">正在加载 DrawIO 编辑器...</p>
+                                    <p className="text-gray-600">{t("drawio.loadingEditor")}</p>
                                 </div>
                             </div>
                         )}

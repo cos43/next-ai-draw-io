@@ -15,6 +15,7 @@ Demo site: [https://next-ai-draw-io.vercel.app/](https://next-ai-draw-io.vercel.
 -   **Smart Editing**: Modify existing diagrams using simple text prompts
 -   **Targeted XML Editing**: AI can now make precise edits to specific parts of diagrams without regenerating the entire XML, making updates faster and more efficient
 -   **Improved XML Handling**: Automatic formatting of single-line XML for better compatibility and reliability
+-   **🌍 Multilingual Support**: Switch between Chinese and English with a single click. Language preference is automatically saved and restored
 
 ## How It Works
 
@@ -72,6 +73,20 @@ Check out the [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 Or you can deploy by this button.
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FDayuanJiang%2Fnext-ai-draw-io)
 
+## Multilingual Support 🌍
+
+FlowPilot supports both Chinese and English interfaces:
+
+- **Automatic Language Detection**: Detects your browser language on first visit
+- **One-Click Switching**: Toggle between languages using the button in the navigation bar
+- **Persistent Preference**: Your language choice is automatically saved
+- **Complete Coverage**: 500+ translation keys covering all UI elements
+
+For developers adding new features, see:
+- **[I18N Implementation Summary](./I18N_IMPLEMENTATION_SUMMARY.md)** - Complete multilingual setup guide
+- **[Modification Guide](./MODIFICATION_GUIDE.md)** - How to add i18n to components
+- **[Translation Mapping](./TRANSLATION_MAPPING.md)** - Complete Chinese-English mapping table
+
 ## Project Structure
 
 ```
@@ -80,11 +95,22 @@ app/                  # Next.js application routes and pages
 components/           # React components
   chat-input.tsx      # User input component for AI interaction
   chatPanel.tsx       # Chat interface with diagram control
+  language-switcher.tsx  # Language toggle button
   ui/                 # UI components (buttons, cards, etc.)
+contexts/             # React contexts for state management
+  locale-context.tsx  # Multilingual i18n support (500+ keys)
 lib/                  # Utility functions and helpers
   utils.ts            # General utilities including XML conversion
 public/               # Static assets including example images
+docs/                 # Documentation
+  i18n-guide.md       # Multilingual implementation guide
 ```
+
+## Documentation
+
+- **[I18N Implementation Summary](./I18N_IMPLEMENTATION_SUMMARY.md)** - Complete guide for multilingual support
+- **[Modification Guide](./MODIFICATION_GUIDE.md)** - How to adapt components for i18n
+- **[Translation Mapping](./TRANSLATION_MAPPING.md)** - Chinese-English translation reference
 
 ## TODOs
 
