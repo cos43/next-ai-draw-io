@@ -20,6 +20,14 @@ const requestSchema = z.object({
 
 const CONVERT_ENDPOINT = "https://convert.diagrams.net/export";
 
+function encodeRFC5987ValueChars(str: string) {
+    return encodeURIComponent(str)
+        .replace(/['()]/g, (char) =>
+            `%${char.charCodeAt(0).toString(16).toUpperCase()}`
+        )
+        .replace(/\*/g, "%2A");
+}
+
 async function renderDiagramPng(xml?: string): Promise<string | null> {
     if (!xml) return null;
     try {
@@ -116,15 +124,22 @@ export async function POST(req: Request) {
             ? rawOutput
             : Buffer.from(rawOutput as ArrayBuffer);
 
-        const fileName = `${(payload.topic || "FlowPilot")
-            .replace(/[^a-zA-Z0-9\u4e00-\u9fa5-_]+/g, "-")
-            .slice(0, 60)}.pptx`;
+        const baseName =
+            (payload.topic || "FlowPilot")
+                .replace(/[^a-zA-Z0-9\u4e00-\u9fa5-_]+/g, "-")
+                .slice(0, 60) || "FlowPilot";
+        const preferredFileName = `${baseName}.pptx`;
+        const asciiFallbackBase =
+            baseName.replace(/[^a-zA-Z0-9-_]+/g, "") || "FlowPilot";
+        const asciiFallback = `${asciiFallbackBase}.pptx`;
+        const encodedFileName = encodeRFC5987ValueChars(preferredFileName);
+        const contentDisposition = `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodedFileName}`;
 
         return new Response(new Uint8Array(buffer), {
             headers: {
                 "Content-Type":
                     "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-                "Content-Disposition": `attachment; filename="${fileName}"`,
+                "Content-Disposition": contentDisposition,
             },
         });
     } catch (error) {
